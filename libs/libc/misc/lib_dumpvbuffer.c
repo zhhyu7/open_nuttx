@@ -25,6 +25,7 @@
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
 
+#include <string.h>
 #include <stdint.h>
 #include <debug.h>
 
@@ -129,9 +130,10 @@ void lib_dumpvbuffer(FAR const char *msg, FAR const struct iovec *iov,
               if (++piov == &iov[iovcnt])
                 {
                   memset(ptr, ' ', (_NITEMS - nitems) * 3);
-                  memset(&line[_ASCIICHAR_OFFSET + nitems], ' ', _NITEMS - nitems);
+                  memset(&line[_ASCIICHAR_OFFSET + nitems], ' ',
+                         _NITEMS - nitems);
                   break;
-              }
+                }
             }
         }
 
