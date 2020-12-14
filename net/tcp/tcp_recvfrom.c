@@ -811,7 +811,8 @@ ssize_t psock_tcp_recvfrom(FAR struct socket *psock, FAR void *buf,
 
   /* Receive additional data from read-ahead buffer, send the ACK timely. */
 
-  if (conn->rcv_wnd == 0 && conn->rcv_ackcb == NULL)
+  else if (state.ir_recvlen > 0 && conn->rcv_wnd == 0 &&
+           conn->rcv_ackcb == NULL)
     {
       conn->rcv_ackcb = tcp_callback_alloc(conn);
       if (conn->rcv_ackcb)
