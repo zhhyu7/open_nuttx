@@ -41,7 +41,8 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/wireless/bluetooth/bt_uart.h>
+#include <nuttx/config.h>
+#include <nuttx/compiler.h>
 
 #ifdef CONFIG_BLUETOOTH_UART_SHIM
 
@@ -49,7 +50,7 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-FAR struct btuart_lowerhalf_s *bt_uart_shim_getdevice(FAR const char *path);
+FAR void *bt_uart_shim_getdevice(FAR char *path);
 
 #endif
 #endif
