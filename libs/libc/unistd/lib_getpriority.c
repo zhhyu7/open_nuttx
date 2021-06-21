@@ -82,9 +82,5 @@ int getpriority(int which, id_t who)
       return ret;
     }
 
-  /* Since -1 is a legal return value, clear errno to avoid the chaos */
-
-  set_errno(0);
-
-  return NZERO - param.sched_priority;
+  return param.sched_priority;
 }

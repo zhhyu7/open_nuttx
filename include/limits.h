@@ -120,10 +120,10 @@
 #define _POSIX_MAX_INPUT      255
 #define _POSIX_NAME_MAX       CONFIG_NAME_MAX
 #define _POSIX_NGROUPS_MAX    0
-#define _POSIX_OPEN_MAX       16
+#define _POSIX_OPEN_MAX       255
 #define _POSIX_PATH_MAX       CONFIG_PATH_MAX
 #define _POSIX_PIPE_BUF       512
-#define _POSIX_STREAM_MAX     16
+#define _POSIX_STREAM_MAX     255
 #define _POSIX_TZNAME_MAX     3
 
 #ifdef CONFIG_SMALL_MEMORY
@@ -276,10 +276,10 @@
 #define NL_TEXTMAX _POSIX2_LINE_MAX
 
 /* NZERO
- *   Default process priority. Minimum Acceptable Value: 128
+ *   Default process priority. Minimum Acceptable Value: 20
  */
 
-#define NZERO 128
+#define NZERO 20
 
 /* Required for asynchronous I/O */
 
