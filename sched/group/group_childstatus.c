@@ -156,7 +156,8 @@ void task_initialize(void)
  *
  * Returned Value:
  *   On success, a non-NULL pointer to a child status structure.  NULL is
- *   returned when memory allocation fails.
+ *   returned if there are no remaining, pre-allocated child status
+ *   structures.
  *
  * Assumptions:
  *   Called during task creation in a safe context.  No special precautions
@@ -175,10 +176,6 @@ FAR struct child_status_s *group_alloc_child(void)
     {
       g_child_pool.freelist = ret->flink;
       ret->flink            = NULL;
-    }
-  else
-    {
-      ret = kmm_zalloc(sizeof(*ret));
     }
 
   return ret;
