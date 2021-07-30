@@ -41,15 +41,7 @@
  * Public Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: sched_dumpstack
- *
- * Description:
- *  Dump thread backtrace from specified tid.
- *
- ****************************************************************************/
-
-void sched_dumpstack(pid_t tid)
+void dump_stack(void)
 {
   FAR void *address[DUMP_DEPTH];
   char line[DUMP_LINESIZE + 1];
@@ -57,7 +49,7 @@ void sched_dumpstack(pid_t tid)
   int size;
   int i;
 
-  size = sched_backtrace(tid, address, DUMP_DEPTH);
+  size = backtrace(address, DUMP_DEPTH);
   if (size <= 0)
     {
       return;
@@ -69,8 +61,7 @@ void sched_dumpstack(pid_t tid)
                       DUMP_FORMAT, DUMP_WIDTH, address[i]);
       if (i == size - 1 || ret % DUMP_LINESIZE == 0)
         {
-          syslog(LOG_INFO, "[BackTrace|%2d|%d]: %s\n",
-                           tid, i / DUMP_NITEM, line);
+          syslog(LOG_INFO, "[CallStack %d]: %s\n", i / DUMP_NITEM, line);
           ret = 0;
         }
     }

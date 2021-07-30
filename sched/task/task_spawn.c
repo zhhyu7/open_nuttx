@@ -437,7 +437,7 @@ int task_spawn(FAR const char *name, main_t entry,
       goto errout_with_lock;
     }
 
-  ret = (int)pid;
+  return (int)pid;
 
 errout_with_lock:
 #ifdef CONFIG_SCHED_WAITPID
