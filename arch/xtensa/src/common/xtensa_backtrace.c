@@ -234,8 +234,6 @@ int up_backtrace(FAR struct tcb_s *tcb, FAR void **buffer, int size)
 #else
           istackbase = &g_intstackalloc;
 #endif
-          xtensa_window_spill();
-
           ret = bactrace_stack((FAR void *)istackbase,
                           (FAR void *)((uint32_t)&g_intstackalloc +
                                        CONFIG_ARCH_INTERRUPTSTACK),
