@@ -150,7 +150,6 @@ void rpmsg_serialinit(void);
 #endif
 
 void up_lowputc(char ch);
-void up_puts(const char *str);
 void up_lowputs(const char *str);
 
 /* Memory configuration */
