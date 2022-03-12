@@ -26,7 +26,6 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/compiler.h>
 
 #include <stddef.h>
 
@@ -53,7 +52,7 @@ extern "C"
 
 FAR char  *strdup(FAR const char *s);
 FAR char  *strndup(FAR const char *s, size_t size);
-FAR char  *strerror(int);
+FAR const char *strerror(int);
 int        strerror_r(int, FAR char *, size_t);
 size_t     strlen(FAR const char *);
 size_t     strnlen(FAR const char *, size_t);
