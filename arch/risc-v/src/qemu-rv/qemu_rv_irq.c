@@ -36,13 +36,9 @@
 #include <arch/csr.h>
 
 #include "riscv_internal.h"
+#include "riscv_arch.h"
+
 #include "chip.h"
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-volatile uintptr_t *g_current_regs[CONFIG_SMP_NCPUS];
 
 /****************************************************************************
  * Public Functions
@@ -210,4 +206,28 @@ irqstate_t up_irq_enable(void)
 
   oldstat = READ_AND_SET_CSR(mstatus, MSTATUS_MIE);
   return oldstat;
+}
+
+/****************************************************************************
+ * Name: riscv_get_newintctx
+ *
+ * Description:
+ *   Return initial mstatus when a task is created.
+ *
+ ****************************************************************************/
+
+uintptr_t riscv_get_newintctx(void)
+{
+  /* Set machine previous privilege mode to machine mode.
+   * Also set machine previous interrupt enable
+   * Note: In qemu, FPU is always exist even if don't use F|D ISA extension
+   */
+
+  uintptr_t mstatus = READ_CSR(mstatus);
+
+#ifdef CONFIG_ARCH_FPU
+  return (mstatus | MSTATUS_MPPM | MSTATUS_MPIE | MSTATUS_FS_INIT);
+#else
+  return (mstatus | MSTATUS_MPPM | MSTATUS_MPIE);
+#endif
 }
