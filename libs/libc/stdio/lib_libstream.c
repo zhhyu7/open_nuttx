@@ -34,7 +34,6 @@
 #include <nuttx/sched.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/lib/lib.h>
-#include <nuttx/tls.h>
 
 #include "libc.h"
 
@@ -57,8 +56,13 @@ void lib_stream_initialize(FAR struct task_group_s *group)
 {
   FAR struct streamlist *list;
 
-  DEBUGASSERT(group && group->tg_info);
-  list = &group->tg_info->ta_streamlist;
+#ifdef CONFIG_MM_KERNEL_HEAP
+  DEBUGASSERT(group && group->tg_streamlist);
+  list = group->tg_streamlist;
+#else
+  DEBUGASSERT(group);
+  list = &group->tg_streamlist;
+#endif
 
   /* Initialize the list access mutex */
 
@@ -90,8 +94,13 @@ void lib_stream_release(FAR struct task_group_s *group)
 {
   FAR struct streamlist *list;
 
-  DEBUGASSERT(group && group->tg_info);
-  list = &group->tg_info->ta_streamlist;
+#ifdef CONFIG_MM_KERNEL_HEAP
+  DEBUGASSERT(group && group->tg_streamlist);
+  list = group->tg_streamlist;
+#else
+  DEBUGASSERT(group);
+  list = &group->tg_streamlist;
+#endif
 
   /* Destroy the mutex and release the filelist */
 

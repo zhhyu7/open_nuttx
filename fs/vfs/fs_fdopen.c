@@ -34,7 +34,6 @@
 #include <nuttx/semaphore.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/lib/lib.h>
-#include <nuttx/tls.h>
 
 #include "inode/inode.h"
 
@@ -154,7 +153,11 @@ int fs_fdopen(int fd, int oflags, FAR struct tcb_s *tcb,
 
   /* Get the stream list from the TCB */
 
-  slist = &tcb->group->tg_info->ta_streamlist;
+#ifdef CONFIG_MM_KERNEL_HEAP
+  slist = tcb->group->tg_streamlist;
+#else
+  slist = &tcb->group->tg_streamlist;
+#endif
 
   /* Allocate FILE structure */
 

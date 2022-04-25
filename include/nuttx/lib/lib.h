@@ -107,12 +107,7 @@ extern "C"
 struct task_group_s;
 void lib_stream_initialize(FAR struct task_group_s *group);
 void lib_stream_release(FAR struct task_group_s *group);
-
-/* Functions contained in lib_getstreams.c **********************************/
-
-struct streamlist;
-FAR struct streamlist *lib_get_streams(void);
-#endif /* CONFIG_FILE_STREAM */
+#endif
 
 /* Functions defined in lib_srand.c *****************************************/
 
