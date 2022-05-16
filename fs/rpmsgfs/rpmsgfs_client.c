@@ -172,12 +172,12 @@ static int rpmsgfs_ioctl_handler(FAR struct rpmsg_endpoint *ept,
 {
   FAR struct rpmsgfs_header_s *header = data;
   FAR struct rpmsgfs_cookie_s *cookie =
-      (struct rpmsgfs_cookie_s *)(uintptr_t)header->cookie;
+      (FAR struct rpmsgfs_cookie_s *)(uintptr_t)header->cookie;
   FAR struct rpmsgfs_ioctl_s *rsp = data;
 
   if (cookie->result >= 0 && rsp->arglen > 0)
     {
-      memcpy(cookie->data, (void *)(uintptr_t)rsp->arg, rsp->arglen);
+      memcpy(cookie->data, (FAR void *)(uintptr_t)rsp->arg, rsp->arglen);
     }
 
   rpmsg_post(ept, &cookie->sem);
@@ -451,11 +451,6 @@ ssize_t rpmsgfs_client_read(FAR void *handle, int fd,
   struct rpmsgfs_read_s msg;
   int ret = 0;
 
-  if (!buf || count <= 0)
-    {
-      return 0;
-    }
-
   memset(&cookie, 0, sizeof(cookie));
 
   nxsem_init(&cookie.sem, 0, 0);
@@ -494,11 +489,6 @@ ssize_t rpmsgfs_client_write(FAR void *handle, int fd,
   struct rpmsgfs_cookie_s cookie;
   size_t written = 0;
   int ret = 0;
-
-  if (!buf || count <= 0)
-    {
-      return 0;
-    }
 
   memset(&cookie, 0, sizeof(cookie));
   nxsem_init(&cookie.sem, 0, 0);
@@ -580,7 +570,7 @@ int rpmsgfs_client_ioctl(FAR void *handle, int fd,
 
   len = sizeof(*msg) + arglen;
   msg = rpmsgfs_get_tx_payload_buffer(priv, &space);
-  if (!msg)
+  if (msg == NULL)
     {
       return -ENOMEM;
     }
@@ -594,12 +584,12 @@ int rpmsgfs_client_ioctl(FAR void *handle, int fd,
 
   if (arglen > 0)
     {
-      memcpy(msg->buf, (void *)(uintptr_t)arg, arglen);
+      memcpy(msg->buf, (FAR void *)(uintptr_t)arg, arglen);
     }
 
   return rpmsgfs_send_recv(handle, RPMSGFS_IOCTL, false,
-                           (struct rpmsgfs_header_s *)msg, len,
-                           arglen > 0 ? (void *)arg : NULL);
+                           (FAR struct rpmsgfs_header_s *)msg, len,
+                           arglen > 0 ? (FAR void *)arg : NULL);
 }
 
 void rpmsgfs_client_sync(FAR void *handle, int fd)
@@ -717,7 +707,6 @@ int rpmsgfs_client_bind(FAR void **handle, FAR const char *cpuname)
   ret = rpmsg_register_callback(priv,
                                 rpmsgfs_device_created,
                                 rpmsgfs_device_destroy,
-                                NULL,
                                 NULL);
   if (ret < 0)
     {
@@ -739,7 +728,6 @@ int rpmsgfs_client_unbind(FAR void *handle)
   rpmsg_unregister_callback(priv,
                             rpmsgfs_device_created,
                             rpmsgfs_device_destroy,
-                            NULL,
                             NULL);
 
   nxsem_destroy(&priv->wait);
@@ -926,7 +914,7 @@ int rpmsgfs_client_fchstat(FAR void *handle, int fd,
 }
 
 int rpmsgfs_client_chstat(FAR void *handle, FAR const char *path,
-                          const FAR struct stat *buf, int flags)
+                          FAR const struct stat *buf, int flags)
 {
   FAR struct rpmsgfs_s *priv = handle;
   FAR struct rpmsgfs_chstat_s *msg;
