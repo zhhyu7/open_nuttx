@@ -61,7 +61,7 @@
 #define BCMF_GSPI_LOWPOWER_TIMEOUT_TICK SEC2TICK(2)
 
 #ifdef CONFIG_IEEE80211_INFINEON_CYW43439
-extern const struct bcmf_chip_data g_cyw43439_config_data;
+extern const struct bcmf_chip_data cyw43439_config_data;
 #endif
 
 #define REV16(x) (((x & 0x000000ff) << 8)   \
@@ -71,9 +71,9 @@ extern const struct bcmf_chip_data g_cyw43439_config_data;
 
 /* Chip-common registers */
 
-#define CHIPCOMMON_GPIO_CONTROL ((uint32_t)(0x18000000 + 0x06c))
-#define CHIPCOMMON_SR_CONTROL0  ((uint32_t)(0x18000000 + 0x504))
-#define CHIPCOMMON_SR_CONTROL1  ((uint32_t)(0x18000000 + 0x508))
+#define CHIPCOMMON_GPIO_CONTROL ((uint32_t)(0x18000000 + 0x06c) )
+#define CHIPCOMMON_SR_CONTROL0  ((uint32_t)(0x18000000 + 0x504) )
+#define CHIPCOMMON_SR_CONTROL1  ((uint32_t)(0x18000000 + 0x508) )
 
 /****************************************************************************
  * Private Data
@@ -138,6 +138,22 @@ static inline uint8_t bcmf_gspi_read_reg_8(FAR gspi_dev_t       *gspi,
   gspi->read(gspi, true, function, address, 1, &buffer);
 
   return buffer;
+}
+
+/****************************************************************************
+ * Name: bcmf_gspi_write_reg_32
+ *
+ * Description:
+ *   Write a 32-bit register
+ *
+ ****************************************************************************/
+
+static inline void bcmf_gspi_write_reg_32(FAR gspi_dev_t       *gspi,
+                                          enum gspi_cmd_func_e  function,
+                                          uint32_t              address,
+                                          uint32_t              value)
+{
+  gspi->write(gspi, true, function, address, 4, &value);
 }
 
 /****************************************************************************
@@ -321,9 +337,9 @@ static int bcmf_gspi_bus_lowpower(FAR bcmf_gspi_dev_t *gbus, bool enable)
  * Name: bcmf_gspi_thread_isr
  ****************************************************************************/
 
-static int bcmf_gspi_thread_isr(int isr, FAR void *context, FAR void *arg)
+static int bcmf_gspi_thread_isr(int isr, void *context, void *arg)
 {
-  FAR bcmf_gspi_dev_t *gbus = (FAR bcmf_gspi_dev_t *)arg;
+  FAR bcmf_gspi_dev_t *gbus = (FAR bcmf_gspi_dev_t  *) arg;
   FAR gspi_dev_t      *gspi = gbus->gspi;
   int                 semcount;
 
@@ -597,9 +613,9 @@ static int bcmf_gspi_init_device(FAR bcmf_gspi_dev_t *gbus)
 
 static int bcmf_gspi_probe_chip(FAR bcmf_gspi_dev_t *gbus)
 {
-  uint32_t value;
-  int      chipid;
-  int      ret;
+  uint32_t        value;
+  int             chipid;
+  int             ret;
 
   wlinfo("entered\n");
 
@@ -618,7 +634,7 @@ static int bcmf_gspi_probe_chip(FAR bcmf_gspi_dev_t *gbus)
 #ifdef CONFIG_IEEE80211_INFINEON_CYW43439
       case SDIO_DEVICE_ID_INFINEON_CYW43439:
         wlinfo("cyw%d chip detected\n", chipid);
-        gbus->chip = (struct bcmf_chip_data *)&g_cyw43439_config_data;
+        gbus->chip = (struct bcmf_chip_data *)&cyw43439_config_data;
         break;
 #endif
 
@@ -801,10 +817,11 @@ static int bcmf_gspi_hw_uninitialize(FAR bcmf_gspi_dev_t *gbus)
  *
  ****************************************************************************/
 
-static int bcmf_bus_gspi_initialize(FAR struct bcmf_dev_s *priv,
-                                    FAR struct gspi_dev_s *gspi)
+static int bcmf_bus_gspi_initialize(FAR struct bcmf_dev_s  *priv,
+                                    FAR struct gspi_dev_s  *gspi)
 {
   FAR bcmf_gspi_dev_t *gbus;
+  int                  ret;
 
   wlinfo("entered.\n");
 
@@ -839,7 +856,11 @@ static int bcmf_bus_gspi_initialize(FAR struct bcmf_dev_s *priv,
 
   /* Init transmit frames queue */
 
-  nxmutex_init(&gbus->queue_lock);
+  if ((ret = nxsem_init(&gbus->queue_mutex, 0, 1)) != OK)
+    {
+      goto exit_free_bus;
+    }
+
   list_initialize(&gbus->tx_queue);
   list_initialize(&gbus->rx_queue);
 
@@ -849,7 +870,15 @@ static int bcmf_bus_gspi_initialize(FAR struct bcmf_dev_s *priv,
 
   /* Init thread semaphore */
 
-  nxsem_init(&gbus->thread_signal, 0, 0);
+  if ((ret = nxsem_init(&gbus->thread_signal, 0, 0)) != OK)
+    {
+      goto exit_free_bus;
+    }
+
+  if ((ret = nxsem_set_protocol(&gbus->thread_signal, SEM_PRIO_NONE)) != OK)
+    {
+      goto exit_free_bus;
+    }
 
   /* Register sdio bus */
 
@@ -862,6 +891,14 @@ static int bcmf_bus_gspi_initialize(FAR struct bcmf_dev_s *priv,
   wlinfo("complete.\n");
 
   return OK;
+
+exit_free_bus:
+
+  wlinfo("failed.\n");
+
+  kmm_free(gbus);
+  priv->bus = NULL;
+  return ret;
 }
 
 /****************************************************************************
@@ -916,11 +953,11 @@ exit_free_device:
 int bcmf_bus_gspi_active(FAR struct bcmf_dev_s *priv,
                          bool                   active)
 {
-  FAR bcmf_gspi_dev_t *gbus = (FAR bcmf_gspi_dev_t *)priv->bus;
-  FAR gspi_dev_t      *gspi = gbus->gspi;
-  int                  ret  = OK;
-  FAR char            *argv[2];
-  char                 arg1[32];
+  FAR bcmf_gspi_dev_t  *gbus = (FAR bcmf_gspi_dev_t *)priv->bus;
+  FAR gspi_dev_t       *gspi = gbus->gspi;
+  int                   ret  = OK;
+  FAR char             *argv[2];
+  char                  arg1[32];
 
   wlinfo("entered.  active = %d\n", active);
 
@@ -1051,7 +1088,7 @@ int bcmf_transfer_bytes(FAR bcmf_gspi_dev_t *gbus,
                         function,
                         address,
                         len,
-                        (FAR uint32_t *)buf);
+                        (FAR uint32_t *) buf);
 
       return ret;
     }
@@ -1063,7 +1100,7 @@ int bcmf_transfer_bytes(FAR bcmf_gspi_dev_t *gbus,
                    function,
                    address,
                    len,
-                   (FAR uint32_t *)buf);
+                   (FAR uint32_t *) buf);
 
   return ret;
 }
