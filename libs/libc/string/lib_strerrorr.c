@@ -54,6 +54,6 @@ int strerror_r(int errnum, FAR char *buf, size_t buflen)
   FAR const char *errstr = strerror(errnum);
 
   DEBUGASSERT(buf != NULL);
-  strlcpy(buf, errstr, buflen);
+  strncpy(buf, errstr, buflen);
   return OK;
 }

@@ -529,7 +529,8 @@ int smartfs_finddirentry(struct smartfs_mountpt_s *fs,
           goto errout;
         }
 
-      strlcpy(fs->fs_workbuffer, segment, seglen + 1);
+      strncpy(fs->fs_workbuffer, segment, seglen);
+      fs->fs_workbuffer[seglen] = '\0';
 
       /* Search for "." and ".." as segment names */
 
@@ -668,8 +669,10 @@ int smartfs_finddirentry(struct smartfs_mountpt_s *fs,
                                 kmm_malloc(fs->fs_llformat.namesize + 1);
                             }
 
-                          strlcpy(direntry->name, entry->name,
-                                  fs->fs_llformat.namesize + 1);
+                          memset(direntry->name, 0,
+                                 fs->fs_llformat.namesize + 1);
+                          strncpy(direntry->name, entry->name,
+                                  fs->fs_llformat.namesize);
                           direntry->datlen = 0;
 
                           /* Scan the file's sectors to calculate the length
@@ -1053,7 +1056,7 @@ int smartfs_createentry(FAR struct smartfs_mountpt_s *fs,
   entry->utc = time(NULL);
 #endif
   memset(entry->name, 0, fs->fs_llformat.namesize);
-  strlcpy(entry->name, filename, fs->fs_llformat.namesize);
+  strncpy(entry->name, filename, fs->fs_llformat.namesize);
 
   /* Now write the new entry to the parent directory sector */
 
@@ -1099,7 +1102,7 @@ int smartfs_createentry(FAR struct smartfs_mountpt_s *fs,
     }
 
   memset(direntry->name, 0, fs->fs_llformat.namesize + 1);
-  strlcpy(direntry->name, filename, fs->fs_llformat.namesize);
+  strncpy(direntry->name, filename, fs->fs_llformat.namesize);
 
   ret = OK;
 

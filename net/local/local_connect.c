@@ -306,8 +306,9 @@ int psock_local_connect(FAR struct socket *psock,
 
                 client->lc_type  = conn->lc_type;
                 client->lc_proto = conn->lc_proto;
-                strlcpy(client->lc_path, unaddr->sun_path,
-                        sizeof(client->lc_path));
+                strncpy(client->lc_path, unaddr->sun_path,
+                        UNIX_PATH_MAX - 1);
+                client->lc_path[UNIX_PATH_MAX - 1] = '\0';
                 client->lc_instance_id = local_generate_instance_id();
 
                 /* The client is now bound to an address */

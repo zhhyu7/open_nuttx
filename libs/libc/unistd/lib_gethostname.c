@@ -111,7 +111,7 @@ int gethostname(FAR char *name, size_t namelen)
    */
 
   flags = enter_critical_section();
-  strlcpy(name, g_hostname, namelen);
+  strncpy(name, g_hostname, namelen);
   leave_critical_section(flags);
 
   return 0;

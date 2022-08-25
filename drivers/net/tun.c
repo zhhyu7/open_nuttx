@@ -1009,7 +1009,7 @@ static int tun_dev_init(FAR struct tun_device_s *priv,
 
   if (devfmt)
     {
-      strlcpy(priv->dev.d_ifname, devfmt, IFNAMSIZ);
+      strncpy(priv->dev.d_ifname, devfmt, IFNAMSIZ);
     }
 
   /* Register the device with the OS so that socket IOCTLs can be performed */
@@ -1342,7 +1342,7 @@ static int tun_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       tun->free_tuns &= ~(1 << intf);
 
       priv = filep->f_priv;
-      strlcpy(ifr->ifr_name, priv->dev.d_ifname, IFNAMSIZ);
+      strncpy(ifr->ifr_name, priv->dev.d_ifname, IFNAMSIZ);
       tundev_unlock(tun);
 
       return OK;

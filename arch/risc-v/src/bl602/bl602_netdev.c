@@ -1610,7 +1610,8 @@ bl602_net_ioctl(struct net_driver_s *dev, int cmd, unsigned long arg)
               return -ENOMEM;
             }
 
-          strlcpy(passphrase, (char *)ext->key, ext->key_len + 1);
+          strncpy(passphrase, (char *)ext->key, ext->key_len);
+          passphrase[ext->key_len] = 0;
 
           wifi_mgmr_sta_passphr_set(passphrase);
           kmm_free(passphrase);
@@ -1779,6 +1780,11 @@ bl602_net_ioctl(struct net_driver_s *dev, int cmd, unsigned long arg)
 
           if (req->u.essid.flags == 0)
             {
+              if (g_state.connected == 0)
+                {
+                  return OK;
+                }
+
               return bl602_ioctl_wifi_stop(priv, arg);
             }
           else if (req->u.essid.flags == 1)

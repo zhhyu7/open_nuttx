@@ -269,12 +269,14 @@ static ssize_t dvfs_write(struct file *filep, const char *buffer,
   int  n;
   int  tmp;
 
-  n = MIN(buflen, DVFS_LINELEN);
-  strlcpy(line, buffer, n);
+  n = MIN(buflen, DVFS_LINELEN - 1);
+  strncpy(line, buffer, n);
+  line[n] = '\0';
 
   n = strcspn(line, " ");
-  n = MIN(n, sizeof(cmd));
-  strlcpy(cmd, line, n);
+  n = MIN(n, sizeof(cmd) - 1);
+  strncpy(cmd, line, n);
+  cmd[n] = '\0';
 
   if (0 == strcmp(cmd, "cur_freq"))
     {

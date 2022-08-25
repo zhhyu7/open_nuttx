@@ -1177,7 +1177,7 @@ int amebaz_wl_initialize(unsigned char mode)
 
   else
     {
-      strlcpy(wrq.ifr_name, "wlan0", IFNAMSIZ);
+      strncpy(wrq.ifr_name, "wlan0", IFNAMSIZ);
       wrq.u.mode = IW_MODE_INFRA;
       return amebaz_wl_set_mode(gp_wlan_dev[0], &wrq);
     }
