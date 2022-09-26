@@ -70,6 +70,14 @@ int modlib_loadhdrs(FAR struct mod_loadinfo_s *loadinfo)
       return -EINVAL;
     }
 
+  /* Verify that there are program headers */
+
+  if (loadinfo->ehdr.e_phnum < 1)
+    {
+      berr("ERROR: No program headers(?)\n");
+      return -EINVAL;
+    }
+
   /* Get the total size of the section header table */
 
   shdrsize = (size_t)loadinfo->ehdr.e_shentsize *
@@ -80,9 +88,19 @@ int modlib_loadhdrs(FAR struct mod_loadinfo_s *loadinfo)
       return -ESPIPE;
     }
 
+  /* Get the total size of the program header table */
+
+  phdrsize = (size_t)loadinfo->ehdr.e_phentsize *
+             (size_t)loadinfo->ehdr.e_phnum;
+  if (loadinfo->ehdr.e_phoff + phdrsize > loadinfo->filelen)
+    {
+      berr("ERROR: Insufficent space in file for program header table\n");
+      return -ESPIPE;
+    }
+
   /* Allocate memory to hold a working copy of the sector header table */
 
-  loadinfo->shdr = (FAR Elf_Shdr *)lib_malloc(shdrsize);
+  loadinfo->shdr = (FAR FAR Elf_Shdr *)lib_malloc(shdrsize);
   if (!loadinfo->shdr)
     {
       berr("ERROR: Failed to allocate the section header table. Size: %ld\n",
@@ -99,43 +117,26 @@ int modlib_loadhdrs(FAR struct mod_loadinfo_s *loadinfo)
       berr("ERROR: Failed to read section header table: %d\n", ret);
     }
 
-  if (loadinfo->ehdr.e_phnum > 0)
+  /* Allocate memory to hold a working copy of the program header table */
+
+  loadinfo->phdr = (FAR FAR Elf_Phdr *)lib_malloc(phdrsize);
+  if (!loadinfo->shdr)
     {
-      /* Get the total size of the program header table */
-
-      phdrsize = (size_t)loadinfo->ehdr.e_phentsize *
-                 (size_t)loadinfo->ehdr.e_phnum;
-      if (loadinfo->ehdr.e_phoff + phdrsize > loadinfo->filelen)
-        {
-          berr("ERROR: Insufficent space for program header table\n");
-          return -ESPIPE;
-        }
-
-      /* Allocate memory to hold a working copy of the program header table */
-
-      loadinfo->phdr = (FAR Elf_Phdr *)lib_malloc(phdrsize);
-      if (!loadinfo->phdr)
-        {
-          lib_free((FAR void *)loadinfo->shdr);
-          berr("ERROR: Failed to allocate the program header table."
-               "Size: %ld\n", (long)phdrsize);
-          return -ENOMEM;
-        }
-
-      /* Read the program header table into memory */
-
-      ret = modlib_read(loadinfo, (FAR uint8_t *)loadinfo->phdr, phdrsize,
-                        loadinfo->ehdr.e_phoff);
-      if (ret < 0)
-        {
-          berr("ERROR: Failed to read program header table: %d\n", ret);
-          lib_free((FAR void *)loadinfo->phdr);
-          lib_free((FAR void *)loadinfo->shdr);
-        }
+      lib_free((FAR void *)loadinfo->shdr);
+      berr("ERROR: Failed to allocate the program header table. Size: %ld\n",
+           (long)phdrsize);
+      return -ENOMEM;
     }
-  else
+
+  /* Read the program header table into memory */
+
+  ret = modlib_read(loadinfo, (FAR uint8_t *)loadinfo->phdr, phdrsize,
+                    loadinfo->ehdr.e_phoff);
+  if (ret < 0)
     {
-      loadinfo->phdr = NULL;
+      berr("ERROR: Failed to read program header table: %d\n", ret);
+      lib_free((FAR void *)loadinfo->phdr);
+      lib_free((FAR void *)loadinfo->shdr);
     }
 
   return ret;
