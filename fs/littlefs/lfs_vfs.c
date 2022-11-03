@@ -1398,7 +1398,6 @@ static int littlefs_stat(FAR struct inode *mountpt, FAR const char *relpath,
     }
 
   ret = lfs_stat(&fs->lfs, relpath, &info);
-  nxmutex_unlock(&fs->lock);
 
   if (ret >= 0)
     {
