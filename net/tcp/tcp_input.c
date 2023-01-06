@@ -397,6 +397,52 @@ static bool tcp_rebuild_ofosegs(FAR struct tcp_conn_s *conn,
 }
 
 /****************************************************************************
+ * Name: tcp_reorder_ofosegs
+ *
+ * Description:
+ *   Sort out-of-order segments by left edge
+ *
+ * Input Parameters:
+ *   nofosegs - Number of out-of-order semgnets
+ *   ofosegs  - Pointer to out-of-order segments
+ *
+ * Returned Value:
+ *   True if re-order occurs
+ *
+ * Assumptions:
+ *   The network is locked.
+ *
+ ****************************************************************************/
+
+static bool tcp_reorder_ofosegs(int nofosegs,
+                                FAR struct tcp_ofoseg_s *ofosegs)
+{
+  struct tcp_ofoseg_s segs;
+  bool reordered = false;
+  int i;
+  int j;
+
+  /* Sort out-of-order segments by left edge */
+
+  for (i = 0; i < nofosegs - 1; i++)
+    {
+      for (j = 0; j < nofosegs - 1 - i; j++)
+        {
+          if (TCP_SEQ_GT(ofosegs[j].left,
+                         ofosegs[j + 1].left))
+            {
+              segs = ofosegs[j];
+              ofosegs[j] = ofosegs[j + 1];
+              ofosegs[j + 1] = segs;
+              reordered = true;
+            }
+        }
+    }
+
+  return reordered;
+}
+
+/****************************************************************************
  * Name: tcp_input_ofosegs
  *
  * Description:
@@ -519,108 +565,6 @@ clear:
 #endif /* CONFIG_NET_TCP_OUT_OF_ORDER */
 
 /****************************************************************************
- * Name: tcp_parse_option
- *
- * Description:
- *   Parse incoming TCP options
- *
- * Input Parameters:
- *   dev    - The device driver structure containing the received TCP packet.
- *   conn   - The TCP connection of interest
- *   iplen  - Length of the IP header (IPv4_HDRLEN or IPv6_HDRLEN).
- *
- * Returned Value:
- *   None
- *
- * Assumptions:
- *   The network is locked.
- *
- ****************************************************************************/
-
-static void tcp_parse_option(FAR struct net_driver_s *dev,
-                             FAR struct tcp_conn_s *conn,
-                             unsigned int iplen)
-{
-  FAR struct tcp_hdr_s *tcp;
-  unsigned int tcpiplen;
-  uint16_t tmp16;
-  uint8_t  opt;
-  int i;
-
-  tcp = IPBUF(iplen);
-
-  if ((tcp->tcpoffset & 0xf0) <= 0x50)
-    {
-      return;
-    }
-
-  tcpiplen = iplen + TCP_HDRLEN;
-
-  for (i = 0; i < ((tcp->tcpoffset >> 4) - 5) << 2 ; )
-    {
-      opt = IPDATA(tcpiplen + i);
-      if (opt == TCP_OPT_END)
-        {
-          /* End of options. */
-
-          break;
-        }
-      else if (opt == TCP_OPT_NOOP)
-        {
-          /* NOP option. */
-
-          ++i;
-          continue;
-        }
-      else if (opt == TCP_OPT_MSS &&
-               IPDATA(tcpiplen + 1 + i) == TCP_OPT_MSS_LEN)
-        {
-          uint16_t tcp_mss = TCP_MSS(dev, iplen);
-
-          /* An MSS option with the right option length. */
-
-          tmp16 = ((uint16_t)IPDATA(tcpiplen + 2 + i) << 8) |
-                   (uint16_t)IPDATA(tcpiplen + 3 + i);
-          conn->mss = tmp16 > tcp_mss ? tcp_mss : tmp16;
-        }
-#ifdef CONFIG_NET_TCP_WINDOW_SCALE
-      else if (opt == TCP_OPT_WS &&
-               IPDATA(tcpiplen + 1 + i) == TCP_OPT_WS_LEN)
-        {
-          conn->snd_scale = IPDATA(tcpiplen + 2 + i);
-          conn->rcv_scale = CONFIG_NET_TCP_WINDOW_SCALE_FACTOR;
-          conn->flags    |= TCP_WSCALE;
-        }
-#endif
-#ifdef CONFIG_NET_TCP_SELECTIVE_ACK
-      else if (opt == TCP_OPT_SACK_PERM &&
-               IPDATA(tcpiplen + 1 + i) ==
-               TCP_OPT_SACK_PERM_LEN)
-        {
-          conn->flags    |= TCP_SACK;
-        }
-#endif
-      else
-        {
-          /* All other options have a length field, so that we
-           * easily can skip past them.
-           */
-
-          if (IPDATA(tcpiplen + 1 + i) == 0)
-            {
-              /* If the length field is zero, the options are
-               * malformed and we don't process them further.
-               */
-
-              break;
-            }
-        }
-
-      i += IPDATA(tcpiplen + 1 + i);
-    }
-}
-
-/****************************************************************************
  * Name: tcp_input
  *
  * Description:
@@ -649,7 +593,9 @@ static void tcp_input(FAR struct net_driver_s *dev, uint8_t domain,
   uint16_t tmp16;
   uint16_t flags;
   uint16_t result;
+  uint8_t  opt;
   int      len;
+  int      i;
 
 #ifdef CONFIG_NET_STATISTICS
   /* Bump up the count of TCP packets received */
@@ -802,7 +748,63 @@ static void tcp_input(FAR struct net_driver_s *dev, uint8_t domain,
 
           /* Parse the TCP MSS option, if present. */
 
-          tcp_parse_option(dev, conn, iplen);
+          if ((tcp->tcpoffset & 0xf0) > 0x50)
+            {
+              for (i = 0; i < ((tcp->tcpoffset >> 4) - 5) << 2 ; )
+                {
+                  opt = IPDATA(tcpiplen + i);
+                  if (opt == TCP_OPT_END)
+                    {
+                      /* End of options. */
+
+                      break;
+                    }
+                  else if (opt == TCP_OPT_NOOP)
+                    {
+                      /* NOP option. */
+
+                      ++i;
+                      continue;
+                    }
+                  else if (opt == TCP_OPT_MSS &&
+                           IPDATA(tcpiplen + 1 + i) == TCP_OPT_MSS_LEN)
+                    {
+                      uint16_t tcp_mss = TCP_MSS(dev, iplen);
+
+                      /* An MSS option with the right option length. */
+
+                      tmp16 = ((uint16_t)IPDATA(tcpiplen + 2 + i) << 8) |
+                               (uint16_t)IPDATA(tcpiplen + 3 + i);
+                      conn->mss = tmp16 > tcp_mss ? tcp_mss : tmp16;
+                    }
+#ifdef CONFIG_NET_TCP_WINDOW_SCALE
+                  else if (opt == TCP_OPT_WS &&
+                           IPDATA(tcpiplen + 1 + i) == TCP_OPT_WS_LEN)
+                    {
+                      conn->snd_scale = IPDATA(tcpiplen + 2 + i);
+                      conn->rcv_scale = CONFIG_NET_TCP_WINDOW_SCALE_FACTOR;
+                      conn->flags    |= TCP_WSCALE;
+                    }
+#endif
+                  else
+                    {
+                      /* All other options have a length field, so that we
+                       * easily can skip past them.
+                       */
+
+                      if (IPDATA(tcpiplen + 1 + i) == 0)
+                        {
+                          /* If the length field is zero, the options are
+                           * malformed and we don't process them further.
+                           */
+
+                          break;
+                        }
+                    }
+
+                  i += IPDATA(tcpiplen + 1 + i);
+                }
+            }
 
           /* Our response will be a SYNACK. */
 
@@ -829,7 +831,7 @@ reset:
 #ifdef CONFIG_NET_STATISTICS
   g_netstats.tcp.synrst++;
 #endif
-  tcp_reset(dev);
+  tcp_reset(dev, conn);
   return;
 
 found:
@@ -1101,7 +1103,6 @@ found:
                     tcp_getsequence(conn->sndseq), ackseq, unackseq,
                     (uint32_t)conn->tx_unacked);
               tcp_setsequence(conn->sndseq, ackseq);
-              conn->nrtx = 0;
             }
         }
 #endif
@@ -1243,7 +1244,63 @@ found:
           {
             /* Parse the TCP MSS option, if present. */
 
-            tcp_parse_option(dev, conn, iplen);
+            if ((tcp->tcpoffset & 0xf0) > 0x50)
+              {
+                for (i = 0; i < ((tcp->tcpoffset >> 4) - 5) << 2 ; )
+                  {
+                    opt = IPDATA(tcpiplen + i);
+                    if (opt == TCP_OPT_END)
+                      {
+                        /* End of options. */
+
+                        break;
+                      }
+                    else if (opt == TCP_OPT_NOOP)
+                      {
+                        /* NOP option. */
+
+                        ++i;
+                        continue;
+                      }
+                    else if (opt == TCP_OPT_MSS &&
+                             IPDATA(tcpiplen + 1 + i) == TCP_OPT_MSS_LEN)
+                      {
+                        uint16_t tcp_mss = TCP_MSS(dev, iplen);
+
+                        /* An MSS option with the right option length. */
+
+                        tmp16 = (IPDATA(tcpiplen + 2 + i) << 8) |
+                                 IPDATA(tcpiplen + 3 + i);
+                        conn->mss = tmp16 > tcp_mss ? tcp_mss : tmp16;
+                      }
+#ifdef CONFIG_NET_TCP_WINDOW_SCALE
+                    else if (opt == TCP_OPT_WS &&
+                             IPDATA(tcpiplen + 1 + i) == TCP_OPT_WS_LEN)
+                      {
+                        conn->snd_scale = IPDATA(tcpiplen + 2 + i);
+                        conn->rcv_scale = CONFIG_NET_TCP_WINDOW_SCALE_FACTOR;
+                        conn->flags    |= TCP_WSCALE;
+                      }
+#endif
+                    else
+                      {
+                        /* All other options have a length field, so that we
+                         * easily can skip past them.
+                         */
+
+                        if (IPDATA(tcpiplen + 1 + i) == 0)
+                          {
+                            /* If the length field is zero, the options are
+                             * malformed and we don't process them further.
+                             */
+
+                            break;
+                          }
+                      }
+
+                    i += IPDATA(tcpiplen + 1 + i);
+                  }
+              }
 
             conn->tcpstateflags = TCP_ESTABLISHED;
             memcpy(conn->rcvseq, tcp->seqno, 4);
@@ -1283,7 +1340,7 @@ found:
             goto drop;
           }
 
-        tcp_reset(dev);
+        tcp_reset(dev, conn);
         return;
 
       case TCP_ESTABLISHED:
@@ -1588,51 +1645,6 @@ drop:
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: tcp_reorder_ofosegs
- *
- * Description:
- *   Sort out-of-order segments by left edge
- *
- * Input Parameters:
- *   nofosegs - Number of out-of-order semgnets
- *   ofosegs  - Pointer to out-of-order segments
- *
- * Returned Value:
- *   True if re-order occurs
- *
- * Assumptions:
- *   The network is locked.
- *
- ****************************************************************************/
-
-bool tcp_reorder_ofosegs(int nofosegs, FAR struct tcp_ofoseg_s *ofosegs)
-{
-  struct tcp_ofoseg_s segs;
-  bool reordered = false;
-  int i;
-  int j;
-
-  /* Sort out-of-order segments by left edge */
-
-  for (i = 0; i < nofosegs - 1; i++)
-    {
-      for (j = 0; j < nofosegs - 1 - i; j++)
-        {
-          if (TCP_SEQ_GT(ofosegs[j].left,
-                         ofosegs[j + 1].left))
-            {
-              segs = ofosegs[j];
-              ofosegs[j] = ofosegs[j + 1];
-              ofosegs[j + 1] = segs;
-              reordered = true;
-            }
-        }
-    }
-
-  return reordered;
-}
 
 /****************************************************************************
  * Name: tcp_ipv4_input
