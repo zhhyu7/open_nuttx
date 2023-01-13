@@ -86,9 +86,34 @@ static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds,
        * spec, that appears to be the correct behavior.
        */
 
-      if (fds[i].fd >= 0)
+      switch (fds[i].events & POLLMASK)
         {
-          ret = poll_fdsetup(fds[i].fd, &fds[i], true);
+        case POLLFD:
+          if (fds[i].fd >= 0)
+            {
+              ret = poll_fdsetup(fds[i].fd, &fds[i], true);
+            }
+          break;
+
+        case POLLFILE:
+          if (fds[i].ptr != NULL)
+            {
+              ret = file_poll(fds[i].ptr, &fds[i], true);
+            }
+          break;
+
+#ifdef CONFIG_NET
+        case POLLSOCK:
+          if (fds[i].ptr != NULL)
+            {
+              ret = psock_poll(fds[i].ptr, &fds[i], true);
+            }
+          break;
+#endif
+
+        default:
+          ret = -EINVAL;
+          break;
         }
 
       if (ret < 0)
@@ -101,7 +126,25 @@ static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds,
 
           for (j = 0; j < i; j++)
             {
-              poll_fdsetup(fds[j].fd, &fds[j], false);
+              switch (fds[j].events & POLLMASK)
+                {
+                case POLLFD:
+                  poll_fdsetup(fds[j].fd, &fds[j], false);
+                  break;
+
+                case POLLFILE:
+                  file_poll(fds[j].ptr, &fds[j], false);
+                  break;
+
+#ifdef CONFIG_NET
+                case POLLSOCK:
+                  psock_poll(fds[j].ptr, &fds[j], false);
+                  break;
+#endif
+
+                default:
+                  break;
+                }
             }
 
           /* Indicate an error on the file descriptor */
@@ -134,11 +177,35 @@ static inline int poll_teardown(FAR struct pollfd *fds, nfds_t nfds,
   *count = 0;
   for (i = 0; i < nfds; i++)
     {
-      if (fds[i].fd >= 0)
+      switch (fds[i].events & POLLMASK)
         {
-          status = poll_fdsetup(fds[i].fd, &fds[i], false);
-        }
+        case POLLFD:
+          if (fds[i].fd >= 0)
+            {
+              status = poll_fdsetup(fds[i].fd, &fds[i], false);
+            }
+          break;
 
+        case POLLFILE:
+          if (fds[i].ptr != NULL)
+            {
+              status = file_poll(fds[i].ptr, &fds[i], false);
+            }
+          break;
+
+#ifdef CONFIG_NET
+        case POLLSOCK:
+            if (fds[i].ptr != NULL)
+            {
+              status = psock_poll(fds[i].ptr, &fds[i], false);
+            }
+          break;
+#endif
+
+        default:
+          status = -EINVAL;
+          break;
+        }
 
       if (status < 0)
         {
