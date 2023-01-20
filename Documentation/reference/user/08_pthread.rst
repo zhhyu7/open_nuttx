@@ -112,9 +112,15 @@ No support for the following pthread interfaces is provided by NuttX:
   -  ``pthread_attr_getguardsize``. get and set the thread guardsize
      attribute.
   -  ``pthread_attr_getscope``. get and set the contentionscope attribute.
+  -  ``pthread_attr_getstackaddr``. get and set the stackaddr attribute.
   -  ``pthread_attr_setguardsize``. get and set the thread guardsize
      attribute.
   -  ``pthread_attr_setscope``. get and set the contentionscope attribute.
+  -  ``pthread_attr_setstackaddr``. get and set the stackaddr attribute.
+  -  ``pthread_condattr_getpshared``. get the process-shared condition
+     variable attribute.
+  -  ``pthread_condattr_setpshared``. set the process-shared condition
+     variable attribute.
   -  ``pthread_getconcurrency``. get and set the level of concurrency.
   -  ``pthread_getcpuclockid``. access a thread CPU-time clock.
   -  ``pthread_mutex_getprioceiling``. get and set the priority ceiling of
@@ -125,6 +131,14 @@ No support for the following pthread interfaces is provided by NuttX:
      attribute of the mutex attributes object.
   -  ``pthread_mutexattr_setprioceiling``. get and set the prioceiling
      attribute of the mutex attributes object.
+  -  ``pthread_rwlockattr_destroy``. destroy and initialize the read-write
+     lock attributes object.
+  -  ``pthread_rwlockattr_getpshared``. get and set the process-shared
+     attribute of the read-write lock attributes object.
+  -  ``pthread_rwlockattr_init``. destroy and initialize the read-write
+     lock attributes object.
+  -  ``pthread_rwlockattr_setpshared``. get and set the process-shared
+     attribute of the read-write lock attributes object.
   -  ``pthread_setconcurrency``. get and set the level of concurrency.
 
 .. c:function:: int pthread_attr_init(pthread_attr_t *attr);
