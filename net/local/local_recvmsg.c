@@ -114,7 +114,7 @@ static int psock_fifo_read(FAR struct socket *psock, FAR void *buf,
 
 #ifdef CONFIG_NET_LOCAL_SCM
 static void local_recvctl(FAR struct local_conn_s *conn,
-                          FAR struct msghdr *msg, int flags)
+                          FAR struct msghdr *msg)
 {
   FAR struct local_conn_s *peer;
   struct cmsghdr *cmsg;
@@ -157,7 +157,7 @@ static void local_recvctl(FAR struct local_conn_s *conn,
                   peer->lc_cfpcount : count;
   for (i = 0; i < count; i++)
     {
-      fds[i] = file_dup(peer->lc_cfps[i], 0, !!(flags & MSG_CMSG_CLOEXEC));
+      fds[i] = file_dup(peer->lc_cfps[i], 0);
       file_close(peer->lc_cfps[i]);
       kmm_free(peer->lc_cfps[i]);
       peer->lc_cfps[i] = NULL;
@@ -496,7 +496,7 @@ ssize_t local_recvmsg(FAR struct socket *psock, FAR struct msghdr *msg,
   if (len >= 0 && msg->msg_control &&
       msg->msg_controllen > sizeof(struct cmsghdr))
     {
-      local_recvctl(psock->s_conn, msg, flags);
+      local_recvctl(psock->s_conn, msg);
     }
 #endif /* CONFIG_NET_LOCAL_SCM */
 

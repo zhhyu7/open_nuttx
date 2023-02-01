@@ -223,6 +223,12 @@
 
 #define PL310_GULP_SIZE            4096
 
+/* Misc commoly defined and re-defined things */
+
+#ifndef OK
+#  define OK                       0
+#endif
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
