@@ -198,6 +198,7 @@ static void *backtrace_push_internal(void **psp, void **ppc)
       return NULL;
     }
 #endif
+
   found = false;
 
   /* Stack frame increase order:
