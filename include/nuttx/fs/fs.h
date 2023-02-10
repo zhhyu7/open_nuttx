@@ -1253,7 +1253,9 @@ int file_fsync(FAR struct file *filep);
  *
  ****************************************************************************/
 
+#ifndef CONFIG_DISABLE_MOUNTPOINT
 int file_truncate(FAR struct file *filep, off_t length);
+#endif
 
 /****************************************************************************
  * Name: file_mmap
