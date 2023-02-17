@@ -60,8 +60,8 @@ int getrlimit(int resource, FAR struct rlimit *rlp)
     {
       case RLIMIT_NOFILE:
         {
-          rlp->rlim_cur = OPEN_MAX;
-          rlp->rlim_max = OPEN_MAX;
+          rlp->rlim_cur = 128;
+          rlp->rlim_max = 1024 * 1024; /* dummy */
         }
         break;
 
