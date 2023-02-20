@@ -84,10 +84,7 @@ libcxx/src/filesystem/operations.cpp_CXXFLAGS += -Wno-shadow
 #  2676 |             const basic_string __temp (__first, __last, __alloc());
 #       |                                ^~~~~~
 
-GCCVER = $(shell $(CXX) --version | grep gcc | sed -r 's/.* ([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
-ifeq ($(GCCVER),12.2.1)
-  libcxx/src/filesystem/operations.cpp_CXXFLAGS += -Wno-maybe-uninitialized
-endif
+libcxx/src/filesystem/operations.cpp_CXXFLAGS += -Wno-maybe-uninitialized
 
 CPPSRCS += $(notdir $(wildcard libcxx/src/*.cpp))
 CPPSRCS += $(notdir $(wildcard libcxx/src/experimental/*.cpp))
