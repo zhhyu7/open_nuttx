@@ -26,7 +26,6 @@
 
 #include <nuttx/note/note_driver.h>
 #include <nuttx/note/notesnap_driver.h>
-#include <nuttx/panic_notifier.h>
 #include <nuttx/sched_note.h>
 #include <sched/sched.h>
 
@@ -52,7 +51,6 @@ struct notesnap_chunk_s
 struct notesnap_s
 {
   struct note_driver_s driver;
-  struct notifier_block nb;
   size_t index;
   bool dumping;
   struct notesnap_chunk_s buffer[CONFIG_DRIVERS_NOTESNAP_NBUFFERS];
@@ -194,10 +192,7 @@ static inline void notesnap_common(FAR struct note_driver_s *drv,
                                    FAR struct tcb_s *tcb, uint8_t type,
                                    uintptr_t args)
 {
-  FAR struct notesnap_s *snap = (FAR struct notesnap_s *)drv;
-  FAR struct notesnap_chunk_s *note;
-  size_t index;
-
+  struct notesnap_s *snap = (struct notesnap_s *)drv;
   if (snap->dumping)
     {
       return;
@@ -205,8 +200,9 @@ static inline void notesnap_common(FAR struct note_driver_s *drv,
 
   /* Atomic operation, equivalent to snap.index++; */
 
-  index = atomic_fetch_add(&snap->index, 1);
-  note = &snap->buffer[index % CONFIG_DRIVERS_NOTESNAP_NBUFFERS];
+  size_t index = atomic_fetch_add(&snap->index, 1);
+  FAR struct notesnap_chunk_s *note =
+      &snap->buffer[index % CONFIG_DRIVERS_NOTESNAP_NBUFFERS];
 
   note->type = type;
 #ifdef CONFIG_SMP
@@ -341,17 +337,6 @@ static void notesnap_syscall_leave(FAR struct note_driver_s *drv, int nr,
 }
 #endif
 
-static int notesnap_notifier(FAR struct notifier_block *nb,
-                             unsigned long action, FAR void *data)
-{
-  if (action == PANIC_KERNEL)
-    {
-      notesnap_dump();
-    }
-
-  return 0;
-}
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -362,8 +347,6 @@ static int notesnap_notifier(FAR struct notifier_block *nb,
 
 int notesnap_register(void)
 {
-  g_notesnap.nb.notifier_call = notesnap_notifier;
-  panic_notifier_chain_register(&g_notesnap.nb);
   return note_driver_register(&g_notesnap.driver);
 }
 
