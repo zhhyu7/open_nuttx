@@ -469,3 +469,15 @@ fail:
 
   return ret;
 }
+
+#ifdef CONFIG_RPMSG_SERIALINIT
+/* Dummy function to make linker happy */
+
+void up_earlyserialinit(void)
+{
+}
+
+void up_serialinit(void)
+{
+}
+#endif /* CONFIG_RPMSG_SERIALINIT */
