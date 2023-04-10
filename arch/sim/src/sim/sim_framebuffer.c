@@ -105,6 +105,11 @@ static int sim_setpower(struct fb_vtable_s *vtable, int power);
 static int sim_openwindow(struct fb_vtable_s *vtable);
 static int sim_closewindow(struct fb_vtable_s *vtable);
 
+/* Get/set the panel power status (0: full off). */
+
+static int sim_getpower(struct fb_vtable_s *vtable);
+static int sim_setpower(struct fb_vtable_s *vtable, int power);
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -176,6 +181,8 @@ static struct fb_vtable_s g_fbobject =
   .setpower      = sim_setpower,
   .open          = sim_openwindow,
   .close         = sim_closewindow,
+  .getpower      = sim_getpower,
+  .setpower      = sim_setpower,
 };
 
 /****************************************************************************
