@@ -611,8 +611,6 @@ FAR struct binder_thread *binder_get_thread(FAR struct binder_proc *proc)
       list_initialize(&thread->todo);
       list_initialize(&thread->waiting_thread_node);
 
-      thread->looper_need_return = true;
-
       thread->return_error.work.type = BINDER_WORK_RETURN_ERROR;
       thread->return_error.cmd       = BR_OK;
       list_initialize(&thread->return_error.work.entry_node);
@@ -1215,6 +1213,10 @@ retry:
               goto retry;
             }
 
+          if (ptr - buffer == 4 && thread->looper_need_return)
+            {
+              put_value(BR_FINISHED, (FAR uint32_t *)buffer);
+            }
           break;
         }
 
