@@ -469,7 +469,7 @@ static ssize_t memdump_write(FAR struct file *filep, FAR const char *buffer,
   FAR struct meminfo_file_s *procfile;
   struct mm_memdump_s dump =
     {
-      PID_MM_ALLOC,
+      MM_BACKTRACE_ALLOC_PID,
 #if CONFIG_MM_BACKTRACE >= 0
       0,
       ULONG_MAX
@@ -540,7 +540,7 @@ static ssize_t memdump_write(FAR struct file *filep, FAR const char *buffer,
   switch (buffer[0])
     {
       case 'u':
-        dump.pid = PID_MM_ALLOC;
+        dump.pid = MM_BACKTRACE_ALLOC_PID;
 
 #if CONFIG_MM_BACKTRACE >= 0
         p = (FAR char *)buffer + 4;
@@ -549,7 +549,7 @@ static ssize_t memdump_write(FAR struct file *filep, FAR const char *buffer,
         break;
 
       case 'f':
-        dump.pid = PID_MM_FREE;
+        dump.pid = MM_BACKTRACE_FREE_PID;
 
 #if CONFIG_MM_BACKTRACE >= 0
         p = (FAR char *)buffer + 4;

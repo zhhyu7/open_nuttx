@@ -87,9 +87,7 @@ static void mallinfo_handler(FAR struct mm_allocnode_s *node, FAR void *arg)
 static void mallinfo_task_handler(FAR struct mm_allocnode_s *node,
                                   FAR void *arg)
 {
-  FAR struct mm_mallinfo_handler_s *handler = arg;
-  FAR const struct malltask *task = handler->task;
-  FAR struct mallinfo_task *info = handler->info;
+  FAR struct mm_mallinfo_handler_s *handle = arg;
   size_t nodesize = SIZEOF_MM_NODE(node);
 
   /* Check if the node corresponds to an allocated memory chunk */
@@ -98,25 +96,30 @@ static void mallinfo_task_handler(FAR struct mm_allocnode_s *node,
     {
       DEBUGASSERT(nodesize >= SIZEOF_MM_ALLOCNODE);
 #if CONFIG_MM_BACKTRACE < 0
-      if (task->pid == PID_MM_ALLOC)
+      if (handle->task->pid == MM_BACKTRACE_ALLOC_PID)
         {
-          info->aordblks++;
-          info->uordblks += nodesize;
+          handle->info->aordblks++;
+          handle->info->uordblks += nodesize;
         }
 #else
-      if ((task->pid == PID_MM_ALLOC || task->pid == node->pid ||
-           (task->pid == PID_MM_LEAK && !!nxsched_get_tcb(node->pid))) &&
-          node->seqno >= task->seqmin && node->seqno <= task->seqmax)
+      if (handle->task->pid == MM_BACKTRACE_ALLOC_PID ||
+          handle->task->pid == node->pid ||
+          (handle->task->pid == MM_BACKTRACE_INVALID_PID &&
+           nxsched_get_tcb(node->pid) == NULL))
         {
-          info->aordblks++;
-          info->uordblks += nodesize;
+          if (node->seqno >= handle->task->seqmin &&
+              node->seqno <= handle->task->seqmax)
+            {
+              handle->info->aordblks++;
+              handle->info->uordblks += nodesize;
+            }
         }
 #endif
     }
-  else if (task->pid == PID_MM_FREE)
+  else if (handle->task->pid == MM_BACKTRACE_FREE_PID)
     {
-      info->aordblks++;
-      info->uordblks += nodesize;
+      handle->info->aordblks++;
+      handle->info->uordblks += nodesize;
     }
 }
 
