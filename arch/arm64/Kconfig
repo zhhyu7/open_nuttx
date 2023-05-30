@@ -46,6 +46,18 @@ config ARCH_CHIP_QEMU
 	---help---
 		QEMU virt platform (ARMv8a)
 
+config ARCH_CHIP_GOLDFISH
+	bool "goldfish platform (ARMv8a)"
+	select ARCH_CORTEX_A53
+	select ARCH_HAVE_MULTICPU
+	select ARMV8A_HAVE_GICv2
+	select ARCH_HAVE_ADDRENV
+	select ARCH_HAVE_IRQTRIGGER
+	select ARCH_NEED_ADDRENV_MAPPING
+	---help---
+		Android GoldFish platform for NuttX (ARMv8a),
+		based on ARM virt board
+
 config ARCH_CHIP_FVP_ARMV8R
 	bool "ARM FVP virt platform (ARMv8r)"
 	select ARCH_CORTEX_R82
@@ -195,6 +207,7 @@ config ARCH_CHIP
 	string
 	default "a64"       if ARCH_CHIP_A64
 	default "qemu"      if ARCH_CHIP_QEMU
+	default "goldfish"  if ARCH_CHIP_GOLDFISH
 	default "fvp-v8r"   if ARCH_CHIP_FVP_ARMV8R
 	default "vdk"       if ARCH_CHIP_VDK
 
@@ -272,6 +285,10 @@ endif
 
 if ARCH_CHIP_VDK
 source "arch/arm64/src/vdk/Kconfig"
+endif
+
+if ARCH_CHIP_GOLDFISH
+source "arch/arm64/src/goldfish/Kconfig"
 endif
 
 endif # ARCH_ARM64
