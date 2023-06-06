@@ -632,17 +632,6 @@ static inline void binder_inc_node_tmpref_ilocked(
   node->tmp_refs++;
 }
 
-/**
- * list_del_init - deletes entry from list and reinitialize it.
- * @entry: the element to delete from the list.
- */
-
-static inline void list_delete_init(FAR struct list_node *entry)
-{
-  list_delete(entry);
-  list_initialize(entry);
-}
-
 static inline void binder_free_node(FAR struct binder_node *node)
 {
   kmm_free(node);

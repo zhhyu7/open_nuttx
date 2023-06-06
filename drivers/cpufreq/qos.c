@@ -180,7 +180,7 @@ static void pm_qos_flags_remove_req(FAR struct pm_qos_flags *pqf,
   int32_t val = 0;
 
   list_delete(&req->node);
-  list_for_each_entry(req, &pqf->list, node)
+  list_for_every_entry(&pqf->list, req, typeof(*req), node)
     {
       val |= req->flags;
     }

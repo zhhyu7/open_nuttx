@@ -179,7 +179,7 @@
     } \
   while (0)
 
-#define list_del_init(item) \
+#define list_delete_init(item) \
   do \
     { \
       list_delete(item); \
@@ -294,11 +294,6 @@
   for(entry = container_of((list)->next, type, member); \
       &entry->member != (list); \
       entry = container_of(entry->member.next, type, member))
-
-/* iterates over the list, entry should be the container structure type */
-
-#define list_for_each_entry(pos, head, member) \
-            list_for_every_entry(head, pos, typeof(*pos), member)
 
 /* iterates over the list in a safe way for deletion of current node
  * entry and temp_entry should be the container structure type *

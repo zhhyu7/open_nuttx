@@ -83,10 +83,8 @@ struct plist_node
  * @head: &struct plist_head pointer
  */
 
-static inline void plist_head_init(FAR struct plist_head *head)
-{
-  list_initialize(&head->node_list);
-}
+#define plist_head_init(head) \
+    list_initialize(&(head)->node_list)
 
 /**
  * plist_node_init - Dynamic struct plist_node initializer
@@ -94,13 +92,13 @@ static inline void plist_head_init(FAR struct plist_head *head)
  * @prio: initial node priority
  */
 
-static inline void plist_node_init(FAR struct plist_node *node,
-                                   int prio)
-{
-  node->prio = prio;
-  list_initialize(&node->prio_list);
-  list_initialize(&node->node_list);
-}
+#define plist_node_init(node, val)          \
+  do                                        \
+    {                                       \
+      (node)->prio = (val);                 \
+      list_initialize(&(node)->prio_list);  \
+      list_initialize(&(node)->node_list);  \
+    } while(0)                              \
 
 /**
  * plist_for_each - iterate over the plist
@@ -109,7 +107,7 @@ static inline void plist_node_init(FAR struct plist_node *node,
  */
 
 #define plist_for_each(pos, head) \
-  list_for_each_entry(pos, &(head)->node_list, node_list)
+  list_for_every_entry(&(head)->node_list, pos, typeof(*pos), node_list)
 
 /**
  * plist_for_each_continue - continue iteration over the plist
@@ -132,7 +130,7 @@ static inline void plist_node_init(FAR struct plist_node *node,
  */
 
 #define plist_for_each_safe(pos, n, head) \
-  list_for_each_entry_safe(pos, n, &(head)->node_list, node_list)
+  list_for_every_entry_safe(&(head)->node_list, pos, n, typeof(*pos), node_list)
 
 /**
  * plist_for_each_entry - iterate over list of given type
@@ -142,7 +140,7 @@ static inline void plist_node_init(FAR struct plist_node *node,
  */
 
 #define plist_for_each_entry(pos, head, mem) \
-  list_for_each_entry(pos, &(head)->node_list, mem.node_list)
+  list_for_every_entry(&(head)->node_list, pos, typeof(*pos), mem.node_list)
 
 /**
  * plist_for_each_entry_continue - continue iteration over list of given type
@@ -166,7 +164,7 @@ static inline void plist_node_init(FAR struct plist_node *node,
  * Iterate over list of given type, safe against removal of list entry.
  */
 #define plist_for_each_entry_safe(pos, n, head, m) \
-  list_for_each_entry_safe(pos, n, &(head)->node_list, m.node_list)
+  list_for_every_entry_safe(&(head)->node_list, pos, n, typeof(*pos), m.node_list)
 
 /* All functions below assume the plist_head is not empty. */
 
@@ -212,29 +210,21 @@ static inline void plist_node_init(FAR struct plist_node *node,
 #define plist_prev(pos) \
     list_prev_entry(pos, typeof(*(pos)), node_list)
 
-/****************************************************************************
- * Inline Functions
- ****************************************************************************/
-
 /**
  * plist_head_empty - return !0 if a plist_head is empty
  * @head: &struct plist_head pointer
  */
 
-static inline int plist_head_empty(FAR const struct plist_head *head)
-{
-  return list_is_empty(&head->node_list);
-}
+#define plist_head_empty(head) \
+    list_is_empty(&(head)->node_list)
 
 /**
  * plist_node_empty - return !0 if plist_node is not on a list
  * @node: &struct plist_node pointer
  */
 
-static inline int plist_node_empty(FAR const struct plist_node *node)
-{
-  return list_is_empty(&node->node_list);
-}
+#define plist_node_empty(node) \
+    list_is_empty(&(node)->node_list)
 
 /**
  * plist_first - return the first node (and thus, highest priority)
@@ -243,11 +233,8 @@ static inline int plist_node_empty(FAR const struct plist_node *node)
  * Assumes the plist is _not_ empty.
  */
 
-static inline FAR struct plist_node *plist_first(
-                            FAR const struct plist_head *head)
-{
-  return list_entry(head->node_list.next, struct plist_node, node_list);
-}
+#define plist_first(head) \
+    list_entry((head)->node_list.next, struct plist_node, node_list)
 
 /**
  * plist_last - return the last node (and thus, lowest priority)
@@ -256,11 +243,12 @@ static inline FAR struct plist_node *plist_first(
  * Assumes the plist is _not_ empty.
  */
 
-static inline FAR struct plist_node *plist_last(
-                            FAR const struct plist_head *head)
-{
-  return list_entry(head->node_list.prev, struct plist_node, node_list);
-}
+#define plist_last(head) \
+    list_entry((head)->node_list.prev, struct plist_node, node_list)
+
+/****************************************************************************
+ * Inline Functions
+ ****************************************************************************/
 
 /**
  * plist_add - add @node to @head
@@ -336,10 +324,10 @@ static inline void plist_del(FAR struct plist_node *node,
             }
         }
 
-      list_del_init(&node->prio_list);
+      list_delete_init(&node->prio_list);
     }
 
-  list_del_init(&node->node_list);
+  list_delete_init(&node->node_list);
 }
 
 /**
