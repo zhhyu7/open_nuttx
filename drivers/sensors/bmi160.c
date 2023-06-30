@@ -947,7 +947,7 @@ static void bmi160_gyro_worker(FAR void *arg)
   DEBUGASSERT(priv != NULL);
 
   work_queue(HPWORK, &priv->work,
-             bmi160_accel_worker, priv,
+             bmi160_gyro_worker, priv,
              priv->interval / USEC_PER_TICK);
 
   bmi160_getregs(priv, BMI160_DATA_8, (FAR uint8_t *)&p, 6);
