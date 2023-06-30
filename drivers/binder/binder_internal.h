@@ -109,6 +109,10 @@ void binder_syslog(FAR char * buff, int pos,
         }                                          \
     } while ( 0 )
 
+#else
+#define binder_debug(mask, x ...)
+#endif
+
 #define WARN_ON(condition)                   \
   do                                         \
     {                                        \
@@ -122,11 +126,6 @@ void binder_syslog(FAR char * buff, int pos,
                  __FILE__, __LINE__);        \
         }                                    \
     } while ( 0 )
-
-#else
-#define binder_debug(mask, x ...)
-#define WARN_ON(condition)
-#endif
 
 #define BUG_ON(condition)  DEBUGASSERT(!(condition))
 

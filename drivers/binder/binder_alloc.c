@@ -274,7 +274,7 @@ static FAR struct binder_buffer *binder_alloc_new_buf_locked(
 
   has_page_addr =
     (void  *)(((uintptr_t)buffer->user_data + buffer_size) & PAGE_MASK);
-  WARN_ON((buffer == NULL && buffer_size != size));
+  WARN_ON(buffer == NULL && buffer_size != size);
   end_page_addr = (void  *)PAGE_ALIGN((uintptr_t)buffer->user_data + size);
   if (end_page_addr > has_page_addr)
     {
