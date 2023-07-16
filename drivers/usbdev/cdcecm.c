@@ -1603,7 +1603,9 @@ static int cdcecm_bind(FAR struct usbdevclass_driver_s *driver,
 
   uinfo("\n");
 
+#ifndef CONFIG_CDCECM_COMPOSITE
   dev->ep0->priv = self;
+#endif
 
   /* Preallocate control request */
 

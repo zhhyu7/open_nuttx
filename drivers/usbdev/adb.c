@@ -161,6 +161,8 @@ struct usbdev_adb_s
    * EPBULKIN; Read requests will be queued in the EBULKOUT.
    */
 
+  bool registered;                    /* Has register_driver() been called */
+
   struct usbadb_wrreq_s wrreqs[CONFIG_USBADB_NWRREQS];
   struct usbadb_rdreq_s rdreqs[CONFIG_USBADB_NRDREQS];
 
@@ -1181,8 +1183,8 @@ static int usbclass_setup(FAR struct usbdevclass_driver_s *driver,
 
   FAR struct usbdev_adb_s *priv;
 #ifndef CONFIG_USBADB_COMPOSITE
-  FAR struct usbdev_req_s *ctrlreq;
   bool cfg_req = true;
+  FAR struct usbdev_req_s *ctrlreq;
 #endif
 
 #ifdef CONFIG_DEBUG_FEATURES
@@ -1545,6 +1547,7 @@ static int usbclass_classobject(int minor,
       goto exit_free_driver;
     }
 
+  alloc->dev.registered = true;
   *classdev = &alloc->drvr;
   return OK;
 
@@ -1571,10 +1574,28 @@ static void usbclass_uninitialize(FAR struct usbdevclass_driver_s *classdev)
     classdev, FAR struct adb_driver_s, drvr);
 
   #warning FIXME Maybe missing logic here
+  if (!alloc->dev.registered)
+    {
+      if (alloc->dev.crefs == 0)
+        {
+#ifdef CONFIG_USBADB_COMPOSITE
+          kmm_free(alloc);
+#endif
+        }
+
+      return;
+    }
 
   unregister_driver(USBADB_CHARDEV_PATH);
 
-  kmm_free(alloc);
+  if (alloc->dev.registered)
+    {
+      alloc->dev.registered = false;
+#ifndef CONFIG_USBADB_COMPOSITE
+      kmm_free(alloc);
+#endif
+      return;
+    }
 }
 
 /****************************************************************************
