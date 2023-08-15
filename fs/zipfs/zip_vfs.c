@@ -258,6 +258,7 @@ static int zipfs_open(FAR struct file *filep, FAR const char *relpath,
   fp->uf = unzOpen2_64(fs->abspath, &zipfs_real_ops);
   if (fp->uf == NULL)
     {
+      ret = -EINVAL;
       goto err_with_mutex;
     }
 
