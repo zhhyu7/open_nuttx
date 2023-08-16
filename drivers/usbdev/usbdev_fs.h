@@ -30,90 +30,59 @@
 #include <nuttx/usb/usbdev.h>
 
 /****************************************************************************
- * Public Types
- ****************************************************************************/
-
-/* Container to support a list of requests */
-
-struct usbdev_fs_req_s
-{
-  sq_entry_t               node;    /* Implements a singly linked list */
-  FAR struct usbdev_req_s *req;     /* The contained request */
-  uint16_t                 offset;  /* Offset to valid data in the RX request */
-};
-
-/* Manage char device non blocking io */
-
-typedef struct usbdev_fs_waiter_sem_s
-{
-  sem_t                              sem;
-  FAR struct usbdev_fs_waiter_sem_s *next;
-} usbdev_fs_waiter_sem_t;
-
-/* This structure describes the char device */
-
-struct usbdev_fs_ep_s
-{
-  uint16_t                    reqnum;
-  uint16_t                    reqsize;
-  FAR struct usbdev_ep_s     *ep;         /* EP entry */
-  FAR usbdev_fs_waiter_sem_t *sems;       /* List of blocking request */
-  struct sq_queue_s           reqq;       /* Available request containers */
-  FAR struct usbdev_fs_req_s *reqbuffer;  /* Request buffer */
-};
-
-struct usbdev_fs_s
-{
-  FAR const char             *name;
-  uint8_t                     crefs;      /* Count of opened instances */
-  mutex_t                     lock;       /* Enforces device exclusive access */
-  struct usbdev_fs_ep_s       fs_epin;
-  struct usbdev_fs_ep_s       fs_epout;
-  FAR struct pollfd          *fds[CONFIG_USBDEV_NPOLLWAITERS];
-};
-
-/****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
- * Name: usbdev_fs_bind
+ * Name: usbdev_fs_initialize
  *
  * Description:
- *   Bind usbdev fs device to ep.
+ *   USBDEV fs initialize
+ *
+ * Returned Value:
+ *   0 on success, negative error code on failure.
  *
  ****************************************************************************/
 
-int usbdev_fs_bind(FAR const char *path, FAR struct usbdev_fs_s *fs);
+FAR void *usbdev_fs_initialize(FAR const struct usbdev_devdescs_s *devdescs,
+                               FAR struct composite_devdesc_s *pdevice);
 
 /****************************************************************************
- * Name: usbdev_fs_unregister
+ * Name: usbdev_fs_uninitialize
  *
  * Description:
- *   Unbind usbdev fs device to ep.
+ *   USBDEV fs uninitialize
+ *
+ * Returned Value:
+ *   0 on success, negative error code on failure.
  *
  ****************************************************************************/
 
-int usbdev_fs_unbind(FAR struct usbdev_fs_s *fs);
+void usbdev_fs_uninitialize(FAR void *handle);
 
 /****************************************************************************
- * Name: usbdev_fs_connect
+ * Name: usbclass_classobject
  *
  * Description:
- *   Notify usbdev fs device connect state.
+ *   Register USB driver and return the class object.
+ *
+ * Returned Value:
+ *   0 on success, negative error code on failure.
  *
  ****************************************************************************/
 
-void usbdev_fs_connect(FAR struct usbdev_fs_s *fs, int connect);
+int usbdev_fs_classobject(int minor,
+                          FAR struct usbdev_devinfo_s *devinfo,
+                          FAR struct usbdevclass_driver_s **classdev);
 
 /****************************************************************************
- * Name: usbdev_fs_submit_rdreqs
+ * Name: usbdev_fs_classuninitialize
  *
  * Description:
- *   Submit rdreq nodes to usb controller.
+ *   Free allocated class memory
  *
  ****************************************************************************/
 
-void usbdev_fs_submit_rdreqs(FAR struct usbdev_fs_ep_s *fs_ep);
+void usbdev_fs_classuninitialize(FAR struct usbdevclass_driver_s *classdev);
 
 #endif /* __DRIVERS_USBDEV_FS_H */
