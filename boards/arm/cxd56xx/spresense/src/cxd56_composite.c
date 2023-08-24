@@ -256,7 +256,7 @@ void *board_composite_connect(int port, int configid)
       dev[1].devinfo.epno[CDCACM_EP_BULKIN_IDX]  = 4;
       dev[1].devinfo.epno[CDCACM_EP_BULKOUT_IDX] = 5;
 
-      return composite_initialize(2, dev);
+      return composite_initialize(composite_getdevdescs(), dev, 2);
 #else
       return NULL;
 #endif
