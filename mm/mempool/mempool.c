@@ -434,8 +434,8 @@ mempool_info_task(FAR struct mempool_s *pool,
     {
       FAR struct mempool_backtrace_s *buf;
 
-      list_for_every_entry(&pool->alist, buf, struct mempool_backtrace_s,
-                           node)
+      list_for_every_entry(&pool->alist, buf,
+                           struct mempool_backtrace_s, node)
         {
           if ((MM_DUMP_ASSIGN(task->pid, buf->pid) ||
                MM_DUMP_ALLOC(task->pid, buf->pid) ||

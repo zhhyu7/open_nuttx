@@ -422,6 +422,9 @@ static void memdump_handler(FAR void *ptr, size_t size, int used,
                  buf->pid, size, buf->seqno, MM_PTR_FMT_WIDTH, ptr);
         }
 #else
+      FAR struct memdump_backtrace_s *buf =
+        ptr + size - sizeof(struct memdump_backtrace_s);
+
       if ((MM_DUMP_ASSIGN(dump->pid, buf->pid) ||
            MM_DUMP_ALLOC(dump->pid, buf->pid) ||
            MM_DUMP_LEAK(dump->pid, buf->pid)) &&
