@@ -1010,16 +1010,6 @@ int bcmf_sdio_thread(int argc, char **argv)
             }
         }
 
-      if (priv->bc_bfwload != true)
-        {
-          /* bcfm start too early, so wait firmware load done,
-           * or start thread when set priv->bc_bfwload = true;
-           */
-
-          usleep(20 * 1000);
-          continue;
-        }
-
       timeout = BCMF_LOWPOWER_TIMEOUT_TICK;
 
       /* Wake up device */

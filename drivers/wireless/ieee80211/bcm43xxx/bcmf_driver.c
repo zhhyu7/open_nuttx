@@ -441,7 +441,6 @@ int bcmf_wl_active(FAR struct bcmf_dev_s *priv, bool active)
       return ret;
     }
 
-  priv->bc_bfwload = true;
   ninfo("Interface activated\n");
 
 #ifdef CONFIG_IEEE80211_BROADCOM_HAVE_CLM

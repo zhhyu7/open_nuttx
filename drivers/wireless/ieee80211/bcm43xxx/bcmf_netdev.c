@@ -713,7 +713,6 @@ static int bcmf_ifdown(FAR struct net_driver_s *dev)
       bcmf_wl_set_pta_priority(priv, IW_PTA_PRIORITY_COEX_MAXIMIZED);
 
       bcmf_wl_enable(priv, false);
-      priv->bc_bfwload = false;
       bcmf_wl_active(priv, false);
     }
 
