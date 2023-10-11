@@ -948,7 +948,7 @@ void binder_transaction(FAR struct binder_proc *proc,
                         FAR struct binder_thread *thread,
                         FAR struct binder_transaction_data *tr, int reply)
 {
-  int                            ret;
+  int                            ret = 0;
   FAR struct binder_transaction *t;
   FAR struct binder_work        *w;
   FAR struct binder_work        *tcomplete;
