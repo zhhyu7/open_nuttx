@@ -91,29 +91,17 @@ struct i2c_slave_driver_s
 
   sem_t wait;
 
-  /* I2C Slave write flag */
-
-  bool writeable;
-
   /* Mutual exclusion */
 
   mutex_t lock;
 
   /* The poll waiter */
 
-  FAR struct pollfd *fds[CONFIG_I2C_SLAVE_NPOLLWAITERS];
+  FAR struct pollfd *fds;
 
   /* Number of open references */
 
   int16_t crefs;
-
-  /* I2C Slave address */
-
-  int addr;
-
-  /* The number of address bits provided (7 or 10) */
-
-  int nbits;
 
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   bool unlinked; /* Indicates if the driver has been unlinked */
@@ -162,7 +150,6 @@ static const struct file_operations g_i2cslavefops =
 static int i2c_slave_open(FAR struct file *filep)
 {
   FAR struct i2c_slave_driver_s *priv;
-  int ret;
 
   DEBUGASSERT(filep->f_inode->i_private != NULL);
 
@@ -174,36 +161,13 @@ static int i2c_slave_open(FAR struct file *filep)
 
   nxmutex_lock(&priv->lock);
 
-  /* I2c slave initialize */
-
-  if (priv->dev->ops->setup != NULL && priv->crefs == 0)
-    {
-      ret = I2CS_SETUP(priv->dev);
-      if (ret < 0)
-        {
-          goto out;
-        }
-    }
-
-  /* Set i2c slave address */
-
-  ret = I2CS_SETOWNADDRESS(priv->dev, priv->addr, priv->nbits);
-  if (ret < 0)
-    {
-      if (priv->dev->ops->shutdown != NULL)
-        {
-          ret = I2CS_SHUTDOWN(priv->dev);
-        }
-    }
-
   /* Increment the count of open references on the driver */
 
   priv->crefs++;
   DEBUGASSERT(priv->crefs > 0);
 
-out:
   nxmutex_unlock(&priv->lock);
-  return ret;
+  return OK;
 }
 
 /****************************************************************************
@@ -224,7 +188,6 @@ out:
 static int i2c_slave_close(FAR struct file *filep)
 {
   FAR struct i2c_slave_driver_s *priv;
-  int ret = OK;
 
   DEBUGASSERT(filep->f_inode->i_private != NULL);
 
@@ -235,17 +198,6 @@ static int i2c_slave_close(FAR struct file *filep)
   /* Get exclusive access to the I2C slave driver state structure */
 
   nxmutex_lock(&priv->lock);
-
-  /* I2c slave uninitialize */
-
-  if (priv->dev->ops->shutdown != NULL && priv->crefs == 1)
-    {
-      ret = I2CS_SHUTDOWN(priv->dev);
-      if (ret < 0)
-        {
-          goto out;
-        }
-    }
 
   /* Decrement the count of open references on the driver */
 
@@ -261,9 +213,8 @@ static int i2c_slave_close(FAR struct file *filep)
     }
 #endif
 
-out:
   nxmutex_unlock(&priv->lock);
-  return ret;
+  return OK;
 }
 
 /****************************************************************************
@@ -363,11 +314,6 @@ static ssize_t i2c_slave_write(FAR struct file *filep,
   write_bytes = MIN(buflen, CONFIG_I2C_SLAVE_WRITEBUFSIZE);
   memcpy(priv->write_buffer, buffer, write_bytes);
   ret = I2CS_WRITE(priv->dev, priv->write_buffer, write_bytes);
-  if (ret >= 0)
-    {
-      priv->writeable = false;
-    }
-
   nxmutex_unlock(&priv->lock);
   return ret < 0 ? ret : write_bytes;
 }
@@ -380,7 +326,7 @@ static int i2c_slave_poll(FAR struct file *filep, FAR struct pollfd *fds,
                           bool setup)
 {
   FAR struct i2c_slave_driver_s *priv;
-  int ret = OK;
+  int ret;
 
   DEBUGASSERT(filep->f_inode->i_private != NULL);
 
@@ -394,19 +340,13 @@ static int i2c_slave_poll(FAR struct file *filep, FAR struct pollfd *fds,
   if (setup)
     {
       pollevent_t eventset = 0;
-      int i;
 
-      for (i = 0; i < CONFIG_I2C_SLAVE_NPOLLWAITERS; i++)
+      if (priv->fds == NULL)
         {
-          if (!priv->fds[i])
-            {
-              priv->fds[i] = fds;
-              fds->priv    = &priv->fds[i];
-              break;
-            }
+          priv->fds = fds;
+          fds->priv = &priv->fds;
         }
-
-      if (i == CONFIG_I2C_SLAVE_NPOLLWAITERS)
+      else
         {
           ret = -EBUSY;
           goto out;
@@ -417,17 +357,11 @@ static int i2c_slave_poll(FAR struct file *filep, FAR struct pollfd *fds,
           eventset |= POLLIN;
         }
 
-      if (priv->writeable)
-        {
-          eventset |= POLLOUT;
-        }
-
-      poll_notify(priv->fds, CONFIG_I2C_SLAVE_NPOLLWAITERS, eventset);
+      poll_notify(&priv->fds, 1, eventset);
     }
   else if (fds->priv != NULL)
     {
-      FAR struct pollfd **slot = fds->priv;
-      *slot     = NULL;
+      priv->fds = NULL;
       fds->priv = NULL;
     }
 
@@ -485,36 +419,26 @@ static int i2c_slave_unlink(FAR struct inode *inode)
 }
 #endif
 
-static int i2c_slave_callback(FAR void *arg, i2c_slave_complete_t status,
-                              size_t length)
+static int i2c_slave_callback(FAR void *arg, size_t length)
 {
   FAR struct i2c_slave_driver_s *priv = arg;
-  pollevent_t events;
   int semcount;
 
   /* Get exclusive access to the I2C Slave driver state structure */
 
   nxmutex_lock(&priv->lock);
 
-  if (status == I2CS_RX_COMPLETE)
-    {
-      events = POLLIN;
-      priv->read_index = 0;
-      priv->read_length = length;
+  priv->read_index = 0;
+  priv->read_length = length;
 
-      while (nxsem_get_value(&priv->wait, &semcount) >= 0 && semcount <= 0)
-        {
-          nxsem_post(&priv->wait);
-        }
-    }
-  else
+  while (nxsem_get_value(&priv->wait, &semcount) >= 0 && semcount <= 1)
     {
-      events = POLLOUT;
-      priv->writeable = true;
+      nxsem_post(&priv->wait);
     }
 
   nxmutex_unlock(&priv->lock);
-  poll_notify(priv->fds, CONFIG_I2C_SLAVE_NPOLLWAITERS, events);
+
+  poll_notify(&priv->fds, 1, POLLIN);
   return OK;
 }
 
@@ -570,9 +494,12 @@ int i2c_slave_register(FAR struct i2c_slave_s *dev, int bus, int addr,
   nxsem_init(&priv->wait, 0, 0);
   nxmutex_init(&priv->lock);
   priv->dev = dev;
-  priv->addr = addr;
-  priv->nbits = nbits;
-  priv->writeable = true;
+
+  ret = I2CS_SETOWNADDRESS(priv->dev, addr, nbits);
+  if (ret < 0)
+    {
+      goto out;
+    }
 
   ret = I2CS_READ(priv->dev, priv->read_buffer,
                   CONFIG_I2C_SLAVE_READBUFSIZE);
@@ -582,7 +509,7 @@ int i2c_slave_register(FAR struct i2c_slave_s *dev, int bus, int addr,
     }
 
   ret = I2CS_REGISTERCALLBACK(priv->dev, i2c_slave_callback, priv);
-  if (ret >= 0)
+  if (ret > 0)
     {
       return OK;
     }

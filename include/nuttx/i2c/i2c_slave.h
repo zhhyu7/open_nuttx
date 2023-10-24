@@ -171,51 +171,12 @@
 #define I2CS_REGISTERCALLBACK(d,c,a) ((d)->ops->registercallback(d,c,a))
 
 /****************************************************************************
- * Name: I2CS_SETUP
- *
- * Description:
- *   I2c slave initialize.
- *
- * Input Parameters:
- *   dev   - Device-specific state data
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
- *
- ****************************************************************************/
-
-#define I2CS_SETUP(d) ((d)->ops->setup(d))
-
-/****************************************************************************
- * Name: I2CS_SHUTDOWN
- *
- * Description:
- *   I2c slave uninitialize.
- *
- * Input Parameters:
- *   dev   - Device-specific state data
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
- *
- ****************************************************************************/
-
-#define I2CS_SHUTDOWN(d) ((d)->ops->shutdown(d))
-
-/****************************************************************************
  * Public Types
  ****************************************************************************/
 
-typedef enum i2c_slave_complete_e
-{
-  I2CS_RX_COMPLETE = 0,
-  I2CS_TX_COMPLETE
-} i2c_slave_complete_t;
-
 /* The callback function */
 
-typedef int (i2c_slave_callback_t)(FAR void *arg, i2c_slave_complete_t state,
-                                   size_t len);
+typedef int (i2c_slave_callback_t)(void *arg, size_t rx_len);
 
 /* The I2C vtable */
 
@@ -237,8 +198,6 @@ struct i2c_slaveops_s
   int (*registercallback)(FAR struct i2c_slave_s *dev,
                           i2c_slave_callback_t   *callback,
                           FAR void               *arg);
-  int (*setup)(FAR struct i2c_slave_s *dev);
-  int (*shutdown)(FAR struct i2c_slave_s *dev);
 };
 
 /* I2C private data.  This structure only defines the initial fields of the
