@@ -459,14 +459,6 @@ void icmpv6_input(FAR struct net_driver_s *dev, unsigned int iplen)
                                           ipv6->srcipaddr);
                       }
 
-                    /* Set the router address for the stateful process. */
-
-                    if ((adv->flags & ICMPv6_RADV_FLAG_M))
-                      {
-                        net_ipv6addr_copy(dev->d_ipv6draddr,
-                                          ipv6->srcipaddr);
-                      }
-
                       /* Notify any waiting threads */
 
                       icmpv6_rnotify(dev, (adv->flags & ICMPv6_RADV_FLAG_M) ?
@@ -564,10 +556,7 @@ void icmpv6_input(FAR struct net_driver_s *dev, unsigned int iplen)
         net_ipv6addr_copy(ipv6->srcipaddr, srcaddr);
 
         icmpv6->chksum = 0;
-
-#ifdef CONFIG_NET_ICMPv6_CHECKSUMS
         icmpv6->chksum = ~icmpv6_chksum(dev, iplen);
-#endif
       }
       break;
 
