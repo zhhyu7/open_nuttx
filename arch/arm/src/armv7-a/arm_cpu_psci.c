@@ -162,6 +162,20 @@ int psci_cpu_off(void)
   return psci_to_dev_err(ret);
 }
 
+int psci_cpu_reset(void)
+{
+  int ret;
+
+  if (psci_data.conduit == SMCCC_CONDUIT_NONE)
+    {
+      return -EINVAL;
+    }
+
+  ret = psci_data.invoke_psci_fn(PSCI_0_2_FN_SYSTEM_RESET, 0, 0, 0);
+
+  return psci_to_dev_err(ret);
+}
+
 int psci_cpu_on(unsigned long cpuid, uintptr_t entry_point)
 {
   int ret;
@@ -171,7 +185,7 @@ int psci_cpu_on(unsigned long cpuid, uintptr_t entry_point)
       return -EINVAL;
     }
 
-  ret = psci_data.invoke_psci_fn(PSCI_0_2_FN_CPU_ON,
+  ret = psci_data.invoke_psci_fn(PSCI_FN_NATIVE(0_2, CPU_ON),
                                  cpuid, (unsigned long)entry_point, 0);
 
   return psci_to_dev_err(ret);
@@ -231,7 +245,7 @@ void up_systempoweroff(void)
 
   /* Set up for the system poweroff */
 
-  ret = psci_sys_poweroff();
+  ret = psci_cpu_off();
   if (ret)
     {
       sinfo("Failed to power off CPU, error code: %d\n", ret);
@@ -256,7 +270,7 @@ void up_systemreset(void)
 
   /* Set up for the system reset */
 
-  ret = psci_sys_reset();
+  ret = psci_cpu_reset();
   if (ret)
     {
       sinfo("Failed to reset CPU, error code: %d\n", ret);
