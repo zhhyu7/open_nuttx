@@ -22,12 +22,4 @@ config OPENAMP_DEBUG
 	bool "Enable OpenAMP Debug"
 	default n
 
-config OPENAMP_VIRTIO_DEVICE_SUPPORT
-	bool "Enable VIRTIO_DEVICE_SUPPORT"
-	default y
-
-config OPENAMP_VIRTIO_DRIVER_SUPPORT
-	bool "Enable VIRTIO_DRIVER_SUPPORT"
-	default y
-
 endif # OPENAMP
