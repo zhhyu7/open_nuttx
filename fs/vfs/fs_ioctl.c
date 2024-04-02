@@ -276,7 +276,6 @@ int ioctl(int fd, int req, ...)
   ret = file_vioctl(filep, req, ap);
   va_end(ap);
 
-  fs_putfilep(filep);
   if (ret < 0)
     {
       goto err;
