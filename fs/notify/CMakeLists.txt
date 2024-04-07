@@ -1,5 +1,5 @@
 # ##############################################################################
-# fs/userfs/CMakeLists.txt
+# fs/notify/CMakeLists.txt
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
@@ -17,8 +17,7 @@
 # the License.
 #
 # ##############################################################################
-if(NOT CONFIG_DISABLE_MOUNTPOINT)
-  if(CONFIG_FS_USERFS)
-    target_sources(fs PRIVATE fs_userfs.c)
-  endif()
+
+if(CONFIG_FS_NOTIFY)
+  target_sources(fs PRIVATE inotify.c)
 endif()

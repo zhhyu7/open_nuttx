@@ -1,5 +1,5 @@
 # ##############################################################################
-# fs/userfs/CMakeLists.txt
+# libs/libc/obstack/CMakeLists.txt
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
@@ -17,8 +17,19 @@
 # the License.
 #
 # ##############################################################################
-if(NOT CONFIG_DISABLE_MOUNTPOINT)
-  if(CONFIG_FS_USERFS)
-    target_sources(fs PRIVATE fs_userfs.c)
-  endif()
-endif()
+
+target_sources(
+  c
+  PRIVATE lib_obstack_init.c
+          lib_obstack_alloc.c
+          lib_obstack_copy.c
+          lib_obstack_free.c
+          lib_obstack_make_room.c
+          lib_obstack_blank.c
+          lib_obstack_grow.c
+          lib_obstack_finish.c
+          lib_obstack_object_size.c
+          lib_obstack_room.c
+          lib_obstack_printf.c
+          lib_obstack_vprintf.c
+          lib_obstack_malloc.c)
