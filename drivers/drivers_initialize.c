@@ -22,6 +22,7 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/android/binder.h>
 #include <nuttx/clk/clk_provider.h>
 #include <nuttx/crypto/crypto.h>
 #include <nuttx/drivers/drivers.h>
@@ -36,19 +37,27 @@
 #include <nuttx/net/tun.h>
 #include <nuttx/net/telnet.h>
 #include <nuttx/note/note_driver.h>
+#include <nuttx/pci/pci.h>
 #include <nuttx/power/pm.h>
 #include <nuttx/power/regulator.h>
+#include <nuttx/reset/reset-controller.h>
 #include <nuttx/segger/rtt.h>
 #include <nuttx/sensors/sensor.h>
 #include <nuttx/serial/pty.h>
 #include <nuttx/serial/uart_ram.h>
+#include <nuttx/sysevent/sysevent_dev.h>
 #include <nuttx/syslog/syslog.h>
 #include <nuttx/syslog/syslog_console.h>
+#include <nuttx/thermal.h>
 #include <nuttx/trace.h>
 #include <nuttx/usrsock/usrsock_rpmsg.h>
 #include <nuttx/vhost/vhost.h>
 #include <nuttx/virtio/virtio.h>
 #include <nuttx/drivers/optee.h>
+
+#ifdef CONFIG_SCHED_PERF_EVENTS
+#  include <perf/pmu.h>
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -75,6 +84,10 @@ void drivers_initialize(void)
 
   syslog_initialize();
 
+#ifdef CONFIG_SYSEVENT
+  sysevent_dev_init();
+#endif
+
 #ifdef CONFIG_SERIAL_RTT
   serial_rtt_initialize();
 #endif
@@ -95,6 +108,10 @@ void drivers_initialize(void)
   devzero_register();   /* Standard /dev/zero */
 #endif
 
+#ifdef CONFIG_DEV_MEM
+  devmem_register();
+#endif
+
 #if defined(CONFIG_DEV_LOOP)
   loop_register();      /* Standard /dev/loop */
 #endif
@@ -113,6 +130,10 @@ void drivers_initialize(void)
 
 #if defined(CONFIG_REGULATOR_RPMSG)
   regulator_rpmsg_server_init();
+#endif
+
+#if defined(CONFIG_RESET_RPMSG)
+  reset_rpmsg_server_init();
 #endif
 
   /* Initialize the serial device driver */
@@ -139,6 +160,10 @@ void drivers_initialize(void)
   /* Register the master pseudo-terminal multiplexor device */
 
   ptmx_register();
+#endif
+
+#ifdef CONFIG_SCHED_PERF_EVENTS
+  pmu_initialize();
 #endif
 
 #if defined(CONFIG_CRYPTO)
@@ -215,6 +240,14 @@ void drivers_initialize(void)
   mtd_loop_register();
 #endif
 
+#ifdef CONFIG_DRIVERS_BINDER
+  binder_initialize();
+#endif
+
+#if defined(CONFIG_PCI) && !defined(CONFIG_PCI_LATE_DRIVERS_REGISTER)
+  pci_register_drivers();
+#endif
+
 #ifdef CONFIG_DRIVERS_VIRTIO
   virtio_register_drivers();
 #endif
@@ -225,6 +258,10 @@ void drivers_initialize(void)
 
 #ifndef CONFIG_DEV_OPTEE_NONE
   optee_register();
+#endif
+
+#ifdef CONFIG_THERMAL
+  thermal_init();
 #endif
 
   drivers_trace_end();
