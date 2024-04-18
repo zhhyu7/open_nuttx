@@ -20,8 +20,6 @@
 if(CONFIG_DEVICE_TREE)
   set(SRCS fdt.c)
 
-  target_include_directories(drivers
-                             PRIVATE ${NUTTX_DIR}/libs/libc/fdt/dtc/libfdt)
   target_sources(drivers PRIVATE ${SRCS})
   target_include_directories(drivers
                              PRIVATE ${NUTTX_DIR}/libs/libc/fdt/dtc/libfdt)
