@@ -79,6 +79,8 @@
 
 #undef offsetof
 
+#undef offsetof
+
 /* GCC-specific definitions *************************************************/
 
 #ifdef __GNUC__
