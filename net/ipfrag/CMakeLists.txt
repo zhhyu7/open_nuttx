@@ -1,7 +1,5 @@
 # ##############################################################################
-# net/ipfrag/CMakeLists.txt
-#
-# SPDX-License-Identifier: Apache-2.0
+# net/tcp/CMakeLists.txt
 #
 # SPDX-License-Identifier: Apache-2.0
 #
