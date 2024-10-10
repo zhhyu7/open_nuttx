@@ -460,7 +460,7 @@ int esp_setup_irq(int source, irq_priority_t priority, irq_trigger_t type)
   if (cpuint < 0)
     {
       _alert("Unable to allocate CPU interrupt for source=%d\n",
-             priority, type);
+             source);
 
       PANIC();
     }
