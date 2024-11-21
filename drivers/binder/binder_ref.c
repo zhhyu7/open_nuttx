@@ -22,7 +22,7 @@
  * Included Files
  ****************************************************************************/
 
-#define LOG_TAG  "BinderRef"
+#define LOG_TAG "BinderRef"
 
 #include <nuttx/config.h>
 #include <sys/types.h>
@@ -96,8 +96,8 @@ struct binder_ref *binder_get_ref_olocked(
  *   into the given proc rb_trees and node refs list.
  *
  * Input Parameters:
- *   proc    - binder_proc that owns the ref
- *   node    - binder_node of target
+ *   proc - binder_proc that owns the ref
+ *   node - binder_node of target
  *   new_ref - newly allocated binder_ref to be initialized or %NULL
  *
  * Returned Value:
@@ -114,10 +114,10 @@ binder_get_ref_for_node_olocked(FAR struct binder_proc *proc,
                                 FAR struct binder_node *node,
                                 FAR struct binder_ref *new_ref)
 {
-  bool                       insert_ref = false;
-  FAR struct binder_context *context    = proc->context;
-  FAR struct binder_ref     *ref        = NULL;
-  FAR struct binder_ref     *n          = NULL;
+  bool insert_ref = false;
+  FAR struct binder_context *context = proc->context;
+  FAR struct binder_ref *ref = NULL;
+  FAR struct binder_ref *n = NULL;
 
   list_for_every_entry(&proc->refs_by_node, ref, struct binder_ref,
                        rb_node_node)
@@ -133,9 +133,9 @@ binder_get_ref_for_node_olocked(FAR struct binder_proc *proc,
       return NULL;
     }
 
-  new_ref->data.debug_id    = binder_last_debug_id++;
-  new_ref->proc             = proc;
-  new_ref->node             = node;
+  new_ref->data.id = binder_last_debug_id++;
+  new_ref->proc = proc;
+  new_ref->node = node;
   list_add_head(&proc->refs_by_node, &new_ref->rb_node_node);
 
   new_ref->data.desc = (node == context->mgr_node) ? 0 : 1;
@@ -161,20 +161,20 @@ binder_get_ref_for_node_olocked(FAR struct binder_proc *proc,
   list_add_head(&node->refs, &new_ref->node_entry);
 
   binder_debug(BINDER_DEBUG_INTERNAL_REFS,
-               "%d new ref %d desc %d for node %d\n", proc->pid,
-               new_ref->data.debug_id, (int)new_ref->data.desc,
-               node->debug_id);
+               "%d new reference %d descriptor %" PRIu32 " for node %d\n",
+               proc->pid, new_ref->data.id,
+               new_ref->data.desc, node->id);
   binder_node_unlock(node);
   return new_ref;
 }
 
 void binder_cleanup_ref_olocked(FAR struct binder_ref *ref)
 {
-  bool                       delete_node = false;
+  bool delete_node = false;
 
   binder_debug(BINDER_DEBUG_INTERNAL_REFS,
-               "%d delete ref %d desc %d for node %d\n", ref->proc->pid,
-               ref->data.debug_id, (int)ref->data.desc, ref->node->debug_id);
+               "%d delete reference %d descriptor %" PRIu32 " for node %d\n",
+               ref->proc->pid, ref->data.id, ref->data.desc, ref->node->id);
 
   list_delete_init(&ref->rb_node_desc);
   list_delete_init(&ref->rb_node_node);
@@ -189,23 +189,19 @@ void binder_cleanup_ref_olocked(FAR struct binder_ref *ref)
   delete_node = binder_dec_node_nilocked(ref->node, 0, 1);
   binder_node_inner_unlock(ref->node);
 
-  /* Clear ref->node unless we want the caller to free the node */
+  /* Clear ref->node only if it has not been deleted */
 
   if (!delete_node)
     {
-      /* The caller uses ref->node to determine
-       * whether the node needs to be freed. Clear
-       * it since the node is still alive.
-       */
-
       ref->node = NULL;
     }
 
   if (ref->death)
     {
       binder_debug(BINDER_DEBUG_DEAD_BINDER,
-                   "%d delete ref %d desc %d has death notification\n",
-                   ref->proc->pid, ref->data.debug_id, (int)ref->data.desc);
+                   "%d delete reference %d descriptor %" PRIu32 ""
+                   "has death notification\n",
+                   ref->proc->pid, ref->data.id, ref->data.desc);
       binder_dequeue_work(ref->proc, &ref->death->work);
     }
 }
@@ -218,8 +214,8 @@ void binder_cleanup_ref_olocked(FAR struct binder_ref *ref)
  *   Increment the ref. ref->proc->outer_lock must be held on entry
  *
  * Input Parameters:
- *   ref         - ref to be incremented
- *   strong      - if true, strong increment, else weak
+ *   ref - ref to be incremented
+ *   strong - if true, strong increment, else weak
  *   target_list - list to queue node work on
  *
  * Returned Value:
@@ -270,7 +266,7 @@ int binder_inc_ref_olocked(FAR struct binder_ref *ref, int strong,
  *   Decrement the ref.
  *
  * Input Parameters:
- *   ref    - ref to be decremented
+ *   ref - ref to be decremented
  *   strong - if true, strong decrement, else weak
  *
  * Returned Value:
@@ -286,9 +282,9 @@ static bool binder_dec_ref_olocked(FAR struct binder_ref *ref, int strong)
         {
           binder_debug(BINDER_DEBUG_ERROR,
                        "%d invalid dec strong, "
-                       "ref %d desc %d s %d w %d\n",
-                       ref->proc->pid, ref->data.debug_id,
-                       (int)ref->data.desc, ref->data.strong,
+                       "ref %d desc %" PRIu32 " s %d w %d\n",
+                       ref->proc->pid, ref->data.id,
+                       ref->data.desc, ref->data.strong,
                        ref->data.weak);
           return false;
         }
@@ -305,9 +301,9 @@ static bool binder_dec_ref_olocked(FAR struct binder_ref *ref, int strong)
         {
           binder_debug(BINDER_DEBUG_ERROR,
                        "%d invalid dec weak, "
-                       "ref %d desc %d s %d w %d\n",
-                       ref->proc->pid, ref->data.debug_id,
-                       (int)ref->data.desc, ref->data.strong,
+                       "ref %d desc %" PRIu32 " s %d w %d\n",
+                       ref->proc->pid, ref->data.id,
+                       ref->data.desc, ref->data.strong,
                        ref->data.weak);
           return false;
         }
@@ -332,7 +328,7 @@ static bool binder_dec_ref_olocked(FAR struct binder_ref *ref, int strong)
  *   (if non-NULL) and the binder_ref_death indicated by ref->death.
  *
  * Input Parameters:
- *   ref:  ref to free
+ *   ref: ref to free
  *
  ****************************************************************************/
 
@@ -360,11 +356,11 @@ void binder_free_ref(FAR struct binder_ref *ref)
  *   doesn't already exist
  *
  * Input Parameters:
- *   proc        - proc containing the ref
- *   node        - target node
- *   strong      - true=strong reference, false=weak reference
+ *   proc - proc containing the ref
+ *   node - target node
+ *   strong - true=strong reference, false=weak reference
  *   target_list - worklist to use if node is incremented
- *   rdata       - the id/refcount data for the ref
+ *   rdata - the id/refcount data for the ref
  *
  * Returned Value:
  *   0 if successful, else errno
@@ -377,8 +373,8 @@ int binder_inc_ref_for_node(FAR struct binder_proc *proc,
                             FAR struct binder_ref_data *rdata)
 {
   FAR struct binder_ref *ref;
-  FAR struct binder_ref *new_ref     = NULL;
-  int                    ret         = 0;
+  FAR struct binder_ref *new_ref = NULL;
+  int ret = 0;
 
   binder_proc_lock(proc);
   ref = binder_get_ref_for_node_olocked(proc, node, NULL);
@@ -398,8 +394,8 @@ int binder_inc_ref_for_node(FAR struct binder_proc *proc,
       ref = binder_get_ref_for_node_olocked(proc, node, new_ref);
     }
 
-  ret       = binder_inc_ref_olocked(ref, strong, target_list);
-  *rdata    = ref->data;
+  ret = binder_inc_ref_olocked(ref, strong, target_list);
+  *rdata = ref->data;
 
   if (ret && ref == new_ref)
     {
@@ -436,11 +432,11 @@ int binder_inc_ref_for_node(FAR struct binder_proc *proc,
  *   according to "increment" arg.
  *
  * Input Parameters:
- *   proc      - proc containing the ref
- *   desc      - the handle associated with the ref
+ *   proc - proc containing the ref
+ *   desc - the handle associated with the ref
  *   increment - true=inc reference, false=dec reference
- *   strong    - true=strong reference, false=weak reference
- *   rdata     - the id/refcount data for the ref
+ *   strong - true=strong reference, false=weak reference
+ *   rdata - the id/refcount data for the ref
  *
  * Returned Value:
  *   0 if successful, else errno
@@ -451,9 +447,9 @@ int binder_update_ref_for_handle(FAR struct binder_proc *proc, uint32_t desc,
                                  bool increment, bool strong,
                                  FAR struct binder_ref_data *rdata)
 {
-  int                    ret = 0;
+  int ret = 0;
   FAR struct binder_ref *ref;
-  bool                   delete_ref = false;
+  bool delete_ref = false;
 
   binder_proc_lock(proc);
   ref = binder_get_ref_olocked(proc, desc, strong);
@@ -499,10 +495,10 @@ err_no_ref:
  *   Just calls binder_update_ref_for_handle() to decrement the ref.
  *
  * Input Parameters:
- *   proc   - proc containing the ref
- *   desc   - the handle associated with the ref
+ *   proc - proc containing the ref
+ *   desc - the handle associated with the ref
  *   strong - true=strong reference, false=weak reference
- *   rdata  - the id/refcount data for the ref
+ *   rdata - the id/refcount data for the ref
  *
  * Returned Value:
  *   0 if successful, else errno
